@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSecure AI - Fraud Detection Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-safe: #00ff88;
+            --accent-fraud: #ff4444;
+            --accent-warning: #ffa500;
+            --border-color: #30363d;
+            --input-bg: #0d1117;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-safe);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: var(--accent-fraud);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Input Form */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-safe);
+        }
+
+        .form-select {
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            border-radius: 8px;
+            color: #0d1117;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Result Card */
+        .result-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Risk Gauge */
+        .risk-gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .risk-gauge {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--accent-safe) 0deg,
+                var(--accent-warning) 90deg,
+                var(--accent-fraud) 180deg,
+                var(--accent-fraud) 360deg
+            );
+            position: relative;
+            animation: gauge-appear 1s ease-out;
+        }
+
+        @keyframes gauge-appear {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .gauge-cover {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px;
+            height: 140px;
+            background: var(--bg-secondary);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .gauge-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .gauge-needle {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: var(--text-primary);
+            transform-origin: bottom center;
+            transform: translateX(-50%);
+            border-radius: 2px;
+            transition: transform 1s ease-out;
+        }
+
+        /* Risk Badge */
+        .risk-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+
+        .risk-badge.low {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-safe);
+        }
+
+        .risk-badge.medium {
+            background: rgba(255, 165, 0, 0.2);
+            color: var(--accent-warning);
+        }
+
+        .risk-badge.high {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--accent-fraud);
+        }
+
+        .risk-badge.critical {
+            background: var(--accent-fraud);
+            color: white;
+            animation: badge-pulse 1s infinite;
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .risk-level-container {
+            text-align: center;
+        }
+
+        /* Explanation */
+        .explanation-box {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            border-left: 4px solid var(--accent-warning);
+        }
+
+        .explanation-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .explanation-text {
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        /* Typewriter effect */
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid var(--accent-warning);
+            white-space: nowrap;
+            animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: var(--accent-warning); }
+        }
+
+        /* Risk Factors Chart */
+        .risk-factors {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .risk-factor {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .risk-factor-name {
+            width: 180px;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .risk-factor-bar-container {
+            flex: 1;
+            height: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .risk-factor-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-warning), var(--accent-fraud));
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+
+        .risk-factor-value {
+            width: 60px;
+            text-align: right;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        /* Processing Time */
+        .processing-time {
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .processing-time span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Transaction History */
+        .history-section {
+            grid-column: 1 / -1;
+            margin-top: 1rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .history-table td {
+            font-size: 0.9375rem;
+        }
+
+        .history-table tr.fraud {
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .history-table tr.legitimate {
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .history-table .id-cell {
+            font-family: monospace;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .history-table .amount-cell {
+            font-weight: 600;
+        }
+
+        /* No results state */
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading state */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-safe);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🔐</span>
+            <span>FinSecure AI</span>
+        </div>
+        <div class="connection-status">
+            <span class="status-dot" id="connectionDot"></span>
+            <span id="connectionText">Connecting...</span>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Left Panel - Transaction Input -->
+        <div class="panel">
+            <h2 class="panel-title">📝 Transaction Details</h2>
+            <form id="transactionForm">
+                <div class="form-group">
+                    <label class="form-label">Transaction Type</label>
+                    <select class="form-select" id="type" required>
+                        <option value="">Select type...</option>
+                        <option value="TRANSFER">TRANSFER</option>
+                        <option value="CASH_OUT">CASH_OUT</option>
+                        <option value="PAYMENT">PAYMENT</option>
+                        <option value="CASH_IN">CASH_IN</option>
+                        <option value="DEBIT">DEBIT</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Amount (₹)</label>
+                    <input type="number" class="form-input" id="amount"
+                           placeholder="Enter amount" step="0.01" min="0.01" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Sender Balance Before (₹)</label>
+                        <input type="number" class="form-input" id="oldbalanceOrg"
+                               placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sender Balance After (₹)</label>
+                        <input type="number" class="form-input" id="newbalanceOrig"
+                               placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Receiver Balance Before (₹)</label>
+                        <input type="number" class="form-input" id="oldbalanceDest"
+                               placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Receiver Balance After (₹)</label>
+                        <input type="number" class="form-input" id="newbalanceDest"
+                               placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Time Step</label>
+                    <input type="number" class="form-input" id="step"
+                           placeholder="0" min="0" value="1">
+                </div>
+
+                <button type="submit" class="analyze-btn">ANALYZE TRANSACTION</button>
+            </form>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p style="margin-top: 1rem; color: var(--text-secondary);">Analyzing...</p>
+            </div>
+        </div>
+
+        <!-- Right Panel - Prediction Result -->
+        <div class="panel">
+            <h2 class="panel-title">🎯 Prediction Results</h2>
+
+            <div class="result-card" id="resultCard">
+                <div class="no-results">
+                    <div class="no-results-icon">📊</div>
+                    <p>Enter transaction details and click analyze</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom - Transaction History -->
+        <div class="panel history-section">
+            <h2 class="panel-title">📋 Recent Transactions</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Type</th>
+                        <th>Amount (₹)</th>
+                        <th>Fraud Probability</th>
+                        <th>Risk Level</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <!-- History rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:8000';
+
+        // State
+        let transactionHistory = [];
+        const MAX_HISTORY = 20;
+
+        // DOM Elements
+        const form = document.getElementById('transactionForm');
+        const resultCard = document.getElementById('resultCard');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const historyBody = document.getElementById('historyBody');
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionText = document.getElementById('connectionText');
+
+        // Check API connection
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    connectionDot.classList.remove('disconnected');
+                    connectionText.textContent = 'Connected';
+                    return true;
+                }
+            } catch (e) {
+                connectionDot.classList.add('disconnected');
+                connectionText.textContent = 'Disconnected';
+            }
+            return false;
+        }
+
+        // Check connection on load
+        checkConnection();
+        setInterval(checkConnection, 5000);
+
+        // Format number with commas
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Get risk level class
+        function getRiskLevelClass(level) {
+            return level.toLowerCase();
+        }
+
+        // Render result card
+        function renderResult(prediction) {
+            const probability = prediction.fraud_probability * 100;
+            const riskLevel = prediction.risk_level;
+            const isFraud = prediction.is_fraud;
+
+            // Calculate gauge rotation (0-180 degrees)
+            const rotation = (probability / 100) * 180 - 90;
+
+            // Risk factors HTML
+            const riskFactorsHTML = prediction.top_risk_factors.map(factor => `
+                <div class="risk-factor">
+                    <span class="risk-factor-name">${factor.feature}</span>
+                    <div class="risk-factor-bar-container">
+                        <div class="risk-factor-bar" style="width: ${factor.importance * 100}%"></div>
+                    </div>
+                    <span class="risk-factor-value">${factor.value.toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            resultCard.innerHTML = `
+                <div class="risk-gauge-container">
+                    <div class="risk-gauge">
+                        <div class="gauge-cover">
+                            <div class="gauge-value" style="color: ${isFraud ? 'var(--accent-fraud)' : 'var(--accent-safe)'}">
+                                ${probability.toFixed(1)}%
+                            </div>
+                            <div class="gauge-label">Fraud Probability</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="risk-level-container">
+                    <span class="risk-badge ${getRiskLevelClass(riskLevel)}">${riskLevel}</span>
+                </div>
+
+                ${prediction.explanation ? `
+                    <div class="explanation-box">
+                        <div class="explanation-title">🤖 AI Analysis</div>
+                        <div class="explanation-text">${prediction.explanation}</div>
+                    </div>
+                ` : ''}
+
+                <div class="risk-factors">
+                    <div class="explanation-title">Top Risk Factors</div>
+                    ${riskFactorsHTML}
+                </div>
+
+                <div class="processing-time">
+                    Processing Time: <span>${prediction.processing_time_ms}ms</span>
+                </div>
+            `;
+        }
+
+        // Render history table
+        function renderHistory() {
+            if (transactionHistory.length === 0) {
+                historyBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                            No transactions analyzed yet
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            historyBody.innerHTML = transactionHistory.map(tx => `
+                <tr class="${tx.is_fraud ? 'fraud' : 'legitimate'}">
+                    <td class="id-cell">${tx.transaction_id.substring(0, 8)}...</td>
+                    <td>${tx.type}</td>
+                    <td class="amount-cell">₹${formatNumber(tx.amount.toFixed(2))}</td>
+                    <td>${(tx.fraud_probability * 100).toFixed(1)}%</td>
+                    <td><span class="risk-badge ${getRiskLevelClass(tx.risk_level)}">${tx.risk_level}</span></td>
+                    <td class="id-cell">${new Date(tx.timestamp).toLocaleTimeString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Show loading
+            form.style.display = 'none';
+            loadingIndicator.classList.add('active');
+
+            // Build request
+            const transaction = {
+                step: parseInt(document.getElementById('step').value) || 1,
+                type: document.getElementById('type').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                oldbalanceOrg: parseFloat(document.getElementById('oldbalanceOrg').value) || 0,
+                newbalanceOrig: parseFloat(document.getElementById('newbalanceOrig').value) || 0,
+                oldbalanceDest: parseFloat(document.getElementById('oldbalanceDest').value) || 0,
+                newbalanceDest: parseFloat(document.getElementById('newbalanceDest').value) || 0
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(transaction)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const prediction = await response.json();
+
+                // Add to history
+                transactionHistory.unshift({
+                    transaction_id: prediction.transaction_id,
+                    type: transaction.type,
+                    amount: transaction.amount,
+                    fraud_probability: prediction.fraud_probability,
+                    risk_level: prediction.risk_level,
+                    is_fraud: prediction.is_fraud,
+                    timestamp: prediction.timestamp
+                });
+
+                // Keep only last 20
+                if (transactionHistory.length > MAX_HISTORY) {
+                    transactionHistory = transactionHistory.slice(0, MAX_HISTORY);
+                }
+
+                // Render results
+                renderResult(prediction);
+                renderHistory();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to analyze transaction. Please check if the API is running.');
+                form.style.display = 'block';
+            } finally {
+                loadingIndicator.classList.remove('active');
+            }
+        });
+
+        // Initialize history
+        renderHistory();
+    </script>
+</body>
+</html>

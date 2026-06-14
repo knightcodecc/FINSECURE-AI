@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSecure AI - Real-Time Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-safe: #00ff88;
+            --accent-fraud: #ff4444;
+            --accent-warning: #ffa500;
+            --border-color: #30363d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-safe);
+            color: #0d1117;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--accent-fraud);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Speed Control */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .speed-control label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .speed-control select {
+            padding: 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 0;
+            height: calc(100vh - 73px);
+        }
+
+        /* Transaction Feed */
+        .feed-panel {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .auto-scroll-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .auto-scroll-toggle input {
+            cursor: pointer;
+        }
+
+        .feed-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        /* Transaction Row */
+        .tx-row {
+            display: grid;
+            grid-template-columns: 80px 100px 120px 100px 80px 1fr;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .tx-row.fraud {
+            border: 2px solid var(--accent-fraud);
+            animation: fraud-pulse 1s infinite;
+        }
+
+        @keyframes fraud-pulse {
+            0%, 100% { box-shadow: 0 0 5px var(--accent-fraud); }
+            50% { box-shadow: 0 0 15px var(--accent-fraud); }
+        }
+
+        .tx-id {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .tx-type {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .tx-amount {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .tx-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tx-badge.low { background: rgba(0, 255, 136, 0.2); color: var(--accent-safe); }
+        .tx-badge.medium { background: rgba(255, 165, 0, 0.2); color: var(--accent-warning); }
+        .tx-badge.high { background: rgba(255, 68, 68, 0.2); color: var(--accent-fraud); }
+        .tx-badge.critical { background: var(--accent-fraud); color: white; }
+
+        .tx-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .tx-prob {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        /* Statistics Panel */
+        .stats-panel {
+            background: var(--bg-primary);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .stat-value.safe { color: var(--accent-safe); }
+        .stat-value.danger { color: var(--accent-fraud); }
+        .stat-value.warning { color: var(--accent-warning); }
+
+        /* Counter Animation */
+        .counter {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Fraud Rate */
+        .fraud-rate {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .rate-bar {
+            width: 100px;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .rate-fill {
+            height: 100%;
+            background: var(--accent-fraud);
+            transition: width 0.3s;
+        }
+
+        /* TPS Gauge */
+        .tps-gauge {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .tps-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .tps-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--accent-safe);
+        }
+
+        /* Mini Chart */
+        .mini-chart {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .chart-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 60px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: var(--accent-fraud);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s;
+            min-height: 2px;
+        }
+
+        /* Alert Popup */
+        .alert-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--accent-fraud);
+            color: white;
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            animation: alert-appear 0.3s ease-out;
+            box-shadow: 0 0 50px rgba(255, 68, 68, 0.5);
+        }
+
+        @keyframes alert-appear {
+            from {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .alert-popup.show {
+            display: block;
+        }
+
+        .alert-subtitle {
+            font-size: 0.875rem;
+            font-weight: 400;
+            margin-top: 0.5rem;
+            opacity: 0.9;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* No Data Message */
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🔐</span>
+            <span>FinSecure AI - Real-Time Scanner</span>
+        </div>
+        <div class="header-controls">
+            <div class="speed-control">
+                <label>Speed:</label>
+                <select id="speedSelect">
+                    <option value="2000">Slow (2s)</option>
+                    <option value="1000" selected>Normal (1s)</option>
+                    <option value="300">Fast (0.3s)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="startBtn">Start</button>
+            <button class="btn btn-secondary" id="pauseBtn" disabled>Pause</button>
+            <button class="btn btn-danger" id="stopBtn" disabled>Stop</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Left - Live Transaction Feed -->
+        <div class="feed-panel">
+            <div class="feed-header">
+                <span class="feed-title">📡 Live Transaction Feed</span>
+                <label class="auto-scroll-toggle">
+                    <input type="checkbox" id="autoScroll" checked>
+                    Auto-scroll
+                </label>
+            </div>
+            <div class="feed-list" id="feedList">
+                <div class="no-data">Click "Start" to begin scanning...</div>
+            </div>
+        </div>
+
+        <!-- Right - Statistics Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-label">Transactions Scanned</div>
+                <div class="stat-value safe counter" id="totalScanned">0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Fraud Detected</div>
+                <div class="stat-value danger counter" id="totalFraud">0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Fraud Rate</div>
+                <div class="stat-value warning" id="fraudRate">0.00%</div>
+                <div class="rate-bar">
+                    <div class="rate-fill" id="rateFill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Total Fraud Amount</div>
+                <div class="stat-value danger" id="fraudAmount">₹0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Transactions Per Second</div>
+                <div class="tps-gauge">
+                    <div class="tps-value" id="tpsValue">0.0</div>
+                    <div class="tps-label">tx/sec</div>
+                </div>
+            </div>
+
+            <div class="mini-chart">
+                <div class="chart-title">Fraud Detections (Last 60s)</div>
+                <div class="chart-container" id="chartContainer">
+                    <!-- Chart bars will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Alert Popup -->
+    <div class="alert-popup" id="alertPopup">
+        🚨 CRITICAL FRAUD DETECTED
+        <div class="alert-subtitle" id="alertAmount">₹0</div>
+    </div>
+
+    <script>
+        // WebSocket Configuration
+        const WS_URL = 'ws://localhost:8000/ws/scan';
+        const STATS_URL = 'ws://localhost:8000/ws/stats';
+
+        // State
+        let ws = null;
+        let statsWs = null;
+        let isRunning = false;
+        let isPaused = false;
+        let transactionQueue = [];
+        const MAX_TRANSACTIONS = 50;
+
+        // Statistics
+        let stats = {
+            totalScanned: 0,
+            totalFraud: 0,
+            totalFraudAmount: 0,
+            scanRate: 0,
+            fraudRate: 0
+        };
+
+        // Chart data (60 seconds)
+        let fraudHistory = new Array(60).fill(0);
+        let historyIndex = 0;
+
+        // DOM Elements
+        const feedList = document.getElementById('feedList');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const speedSelect = document.getElementById('speedSelect');
+        const autoScrollCheckbox = document.getElementById('autoScroll');
+        const alertPopup = document.getElementById('alertPopup');
+        const alertAmount = document.getElementById('alertAmount');
+
+        // Format number with commas
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        }
+
+        // Format transaction ID
+        function formatTxId(id) {
+            return id.substring(0, 8);
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('totalScanned').textContent = formatNumber(stats.totalScanned);
+            document.getElementById('totalFraud').textContent = formatNumber(stats.totalFraud);
+            document.getElementById('fraudRate').textContent = (stats.fraudRate * 100).toFixed(2) + '%';
+            document.getElementById('rateFill').style.width = (stats.fraudRate * 100) + '%';
+            document.getElementById('fraudAmount').textContent = '₹' + formatNumber(Math.floor(stats.totalFraudAmount));
+            document.getElementById('tpsValue').textContent = stats.scanRate.toFixed(1);
+        }
+
+        // Update chart
+        function updateChart() {
+            const container = document.getElementById('chartContainer');
+            const maxValue = Math.max(...fraudHistory, 1);
+
+            container.innerHTML = fraudHistory.map(value => {
+                const height = (value / maxValue) * 100;
+                return `<div class="chart-bar" style="height: ${height}%"></div>`;
+            }).join('');
+        }
+
+        // Show alert
+        function showAlert(amount) {
+            alertAmount.textContent = '₹' + formatNumber(amount.toFixed(2));
+            alertPopup.classList.add('show');
+
+            setTimeout(() => {
+                alertPopup.classList.remove('show');
+            }, 3000);
+        }
+
+        // Add transaction to feed
+        function addTransaction(tx) {
+            const row = document.createElement('div');
+            row.className = 'tx-row' + (tx.is_fraud ? ' fraud' : '');
+
+            row.innerHTML = `
+                <span class="tx-id">${formatTxId(tx.transaction_id)}</span>
+                <span class="tx-type">${tx.type}</span>
+                <span class="tx-amount">₹${formatNumber(tx.amount.toFixed(2))}</span>
+                <span class="tx-badge ${tx.risk_level.toLowerCase()}">${tx.risk_level}</span>
+                <span class="tx-prob">${(tx.fraud_probability * 100).toFixed(1)}%</span>
+                <span class="tx-time">${formatTime(tx.timestamp)}</span>
+            `;
+
+            feedList.insertBefore(row, feedList.firstChild);
+
+            // Keep only last 50
+            if (feedList.children.length > MAX_TRANSACTIONS) {
+                feedList.removeChild(feedList.lastChild);
+            }
+
+            // Auto scroll
+            if (autoScrollCheckbox.checked) {
+                feedList.scrollTop = 0;
+            }
+
+            // Show alert for CRITICAL fraud
+            if (tx.risk_level === 'CRITICAL') {
+                showAlert(tx.amount);
+            }
+        }
+
+        // Connect to WebSocket
+        function connect() {
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                isRunning = true;
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+            };
+
+            ws.onmessage = (event) => {
+                if (isPaused) return;
+
+                const tx = JSON.parse(event.data);
+                addTransaction(tx);
+
+                // Update stats
+                stats.totalScanned++;
+                if (tx.is_fraud) {
+                    stats.totalFraud++;
+                    stats.totalFraudAmount += tx.amount;
+
+                    // Update history
+                    fraudHistory[historyIndex] = (fraudHistory[historyIndex] || 0) + 1;
+                }
+
+                stats.fraudRate = stats.totalFraud / stats.totalScanned;
+                updateStats();
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                isRunning = false;
+                if (isRunning) {
+                    // Auto reconnect
+                    setTimeout(connect, 1000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Disconnect
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            isRunning = false;
+            isPaused = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+        }
+
+        // Button handlers
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                connect();
+            } else if (isPaused) {
+                isPaused = false;
+                pauseBtn.textContent = 'Pause';
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (isPaused) {
+                isPaused = false;
+                pauseBtn.textContent = 'Pause';
+            } else {
+                isPaused = true;
+                pauseBtn.textContent = 'Resume';
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            disconnect();
+            feedList.innerHTML = '<div class="no-data">Click "Start" to begin scanning...</div>';
+            stats = {
+                totalScanned: 0,
+                totalFraud: 0,
+                totalFraudAmount: 0,
+                scanRate: 0,
+                fraudRate: 0
+            };
+            fraudHistory = new Array(60).fill(0);
+            updateStats();
+            updateChart();
+        });
+
+        // Update speed (this would require server-side changes in a real implementation)
+        speedSelect.addEventListener('change', (e) => {
+            console.log('Speed changed to:', e.target.value, 'ms');
+            // In a real implementation, this would send a message to change the scan interval
+        });
+
+        // Update chart every second
+        setInterval(() => {
+            if (isRunning && !isPaused) {
+                historyIndex = (historyIndex + 1) % 60;
+                // Calculate scan rate
+                stats.scanRate = stats.totalScanned / ((Date.now() / 1000) - 1700000000) * 60 || 0.5;
+                updateChart();
+            }
+        }, 1000);
+
+        // Initial chart render
+        updateChart();
+    </script>
+</body>
+</html>
