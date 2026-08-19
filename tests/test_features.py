@@ -81,12 +81,12 @@ class TestBalanceError:
     def test_balance_error_orig_normal(self, sample_df):
         """Test normal transaction balance error calculation."""
         result = balance_error_orig(sample_df)
-        assert result.iloc[0] == 500  # (5000 - 1000) - 4000
+        assert result.iloc[0] == 0  # (5000 - 1000) - 4000
 
     def test_balance_error_orig_zero(self, zero_balance_df):
         """Test zero balance transaction."""
         result = balance_error_orig(zero_balance_df)
-        assert result.iloc[0] == 0  # (0 - 100) - 0 = -100
+        assert result.iloc[0] == -100  # (0 - 100) - 0 = -100
 
     def test_balance_error_dest_normal(self, sample_df):
         """Test destination balance error."""

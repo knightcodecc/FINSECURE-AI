@@ -22,7 +22,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.feature_engineering import (
     engineer_features,
     transform_with_scaler,
-    get_feature_columns
+    get_feature_columns,
+    NUMERIC_FEATURES
 )
 
 from api.schemas import (
@@ -30,6 +31,7 @@ from api.schemas import (
     RiskLevel,
     RiskFactor
 )
+from api.db import query_realtime_velocity
 
 # Configure logging
 logging.basicConfig(
@@ -104,33 +106,74 @@ class FraudPredictor:
 
     def _transaction_to_dataframe(self, transaction: TransactionInput) -> pd.DataFrame:
         """
-        Convert TransactionInput to DataFrame with required columns.
-
-        Args:
-            transaction: TransactionInput Pydantic model.
-
-        Returns:
-            DataFrame with transaction data.
+        Convert TransactionInput to DataFrame with required columns and velocity lookups.
         """
-        # Build row data
+        t_val = (transaction.type.value if hasattr(transaction.type, 'value') else str(transaction.type)).strip().upper()
+        name_orig = getattr(transaction, 'nameOrig', '') or ''
+        name_dest = getattr(transaction, 'nameDest', '') or ''
+
+        # Query real-time velocity features from DB
+        is_dest_new, recency_hours, txn_count_24h = query_realtime_velocity(
+            name_orig, name_dest, transaction.step
+        )
+
         row = {
             'step': transaction.step,
-            'type': transaction.type.value,
+            'type': t_val,
+            'nameOrig': name_orig,
+            'nameDest': name_dest,
             'amount': transaction.amount,
             'oldbalanceOrg': transaction.oldbalanceOrg,
             'newbalanceOrig': transaction.newbalanceOrig,
             'oldbalanceDest': transaction.oldbalanceDest,
             'newbalanceDest': transaction.newbalanceDest,
-            'isFraud': 0  # Dummy value, not used in inference
+            'is_dest_new': is_dest_new,
+            'recency_hours': recency_hours,
+            'txn_count_24h': txn_count_24h,
+            'isFraud': 0
         }
 
-        # Add one-hot encoded type columns
         valid_types = ['TRANSFER', 'CASH_OUT', 'PAYMENT', 'CASH_IN', 'DEBIT']
         for t in valid_types:
-            row[f'type_{t}'] = 1 if transaction.type.value == t else 0
+            row[f'type_{t}'] = 1 if t_val == t else 0
 
         df = pd.DataFrame([row])
         return df
+
+    def _transactions_to_dataframe(self, transactions: List[TransactionInput]) -> pd.DataFrame:
+        """
+        Convert a list of TransactionInput to a DataFrame in a vectorized manner with velocity lookups.
+        """
+        valid_types = ['TRANSFER', 'CASH_OUT', 'PAYMENT', 'CASH_IN', 'DEBIT']
+        rows = []
+        for transaction in transactions:
+            t_val = (transaction.type.value if hasattr(transaction.type, 'value') else str(transaction.type)).strip().upper()
+            name_orig = getattr(transaction, 'nameOrig', '') or ''
+            name_dest = getattr(transaction, 'nameDest', '') or ''
+
+            is_dest_new, recency_hours, txn_count_24h = query_realtime_velocity(
+                name_orig, name_dest, transaction.step
+            )
+
+            row = {
+                'step': transaction.step,
+                'type': t_val,
+                'nameOrig': name_orig,
+                'nameDest': name_dest,
+                'amount': transaction.amount,
+                'oldbalanceOrg': transaction.oldbalanceOrg,
+                'newbalanceOrig': transaction.newbalanceOrig,
+                'oldbalanceDest': transaction.oldbalanceDest,
+                'newbalanceDest': transaction.newbalanceDest,
+                'is_dest_new': is_dest_new,
+                'recency_hours': recency_hours,
+                'txn_count_24h': txn_count_24h,
+                'isFraud': 0
+            }
+            for t in valid_types:
+                row[f'type_{t}'] = 1 if t_val == t else 0
+            rows.append(row)
+        return pd.DataFrame(rows)
 
     def _apply_feature_engineering(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -147,16 +190,16 @@ class FraudPredictor:
     def _get_risk_factors(self, df: pd.DataFrame,
                           fraud_probability: float) -> List[RiskFactor]:
         """
-        Extract top risk factors based on feature importance.
+        Extract top risk factors based on transaction-specific feature contributions.
 
         Args:
-            df: DataFrame with engineered features.
+            df: DataFrame with engineered features (should be a single-row DataFrame).
             fraud_probability: Fraud probability score.
 
         Returns:
             List of top 5 RiskFactor objects.
         """
-        if self.model is None:
+        if self.model is None or df.empty:
             return []
 
         # Get feature importances
@@ -165,20 +208,44 @@ class FraudPredictor:
         # Map features to their importance values
         feature_importance = dict(zip(self.feature_columns, importances))
 
-        # Get feature values from input
+        # Build map of numeric scaler mean/scale
+        scaler_means = {}
+        scaler_scales = {}
+        if self.scaler is not None and hasattr(self.scaler, 'mean_') and hasattr(self.scaler, 'scale_'):
+            features_in_scaler = getattr(self.scaler, 'feature_names_in_', NUMERIC_FEATURES)
+            for idx, feat in enumerate(features_in_scaler):
+                if idx < len(self.scaler.mean_):
+                    scaler_means[feat] = self.scaler.mean_[idx]
+                if idx < len(self.scaler.scale_):
+                    scaler_scales[feat] = self.scaler.scale_[idx]
+
+        # Calculate transaction-specific contribution
         risk_factors = []
         for feature in self.feature_columns:
             if feature in df.columns:
                 importance = feature_importance.get(feature, 0.0)
                 value = df[feature].iloc[0]
 
+                # Calculate transaction-specific contribution
+                if feature in NUMERIC_FEATURES:
+                    mean = scaler_means.get(feature, 0.0)
+                    scale = scaler_scales.get(feature, 1.0)
+                    std_val = (value - mean) / scale
+                    contribution = abs(std_val) * importance
+                else:
+                    # Prioritize active binary flags when their value is 1
+                    if value == 1:
+                        contribution = importance * 3.0
+                    else:
+                        contribution = value * importance
+
                 risk_factors.append(RiskFactor(
                     feature=feature,
                     value=float(value),
-                    importance=float(importance)
+                    importance=float(contribution)
                 ))
 
-        # Sort by importance and take top 5
+        # Sort by importance (contribution) and take top 5
         risk_factors.sort(key=lambda x: x.importance, reverse=True)
         return risk_factors[:5]
 
@@ -255,7 +322,7 @@ class FraudPredictor:
 
     def predict_batch(self, transactions: List[TransactionInput]) -> List[Dict[str, Any]]:
         """
-        Predict fraud for multiple transactions.
+        Predict fraud for multiple transactions in a vectorized manner.
 
         Args:
             transactions: List of TransactionInput objects.
@@ -263,12 +330,50 @@ class FraudPredictor:
         Returns:
             List of prediction dictionaries.
         """
-        results = []
+        if not transactions:
+            return []
 
-        # Process each transaction
-        for transaction in transactions:
-            result = self.predict_single(transaction)
-            results.append(result)
+        start_time = time.time()
+
+        # Convert all to DataFrame at once
+        df = self._transactions_to_dataframe(transactions)
+
+        # Apply feature engineering
+        df_engineered = self._apply_feature_engineering(df)
+
+        # Select only feature columns
+        X = df_engineered[self.feature_columns]
+
+        # Scale features
+        X_scaled = transform_with_scaler(X, self.scaler)
+
+        # Get prediction probabilities for the batch
+        probabilities = self.model.predict_proba(X_scaled)[:, 1]
+
+        # Apply threshold
+        threshold = self.metadata.get('threshold', OPTIMAL_THRESHOLD)
+
+        # Calculate processing time per transaction (or average total time)
+        total_time_ms = (time.time() - start_time) * 1000
+        avg_time_ms = total_time_ms / len(transactions)
+
+        results = []
+        for i, transaction in enumerate(transactions):
+            prob = float(probabilities[i])
+            is_fraud = prob >= threshold
+            risk_level = self.compute_risk_level(prob)
+
+            # Extract the specific row as a single-row DataFrame for risk factors calculation
+            tx_df = df_engineered.iloc[[i]].copy()
+            top_risk_factors = self._get_risk_factors(tx_df, prob)
+
+            results.append({
+                'is_fraud': is_fraud,
+                'fraud_probability': round(prob, 4),
+                'risk_level': risk_level,
+                'top_risk_factors': top_risk_factors,
+                'processing_time_ms': round(avg_time_ms, 2)
+            })
 
         return results
 

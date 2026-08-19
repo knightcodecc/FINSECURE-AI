@@ -167,18 +167,36 @@ class XAIEngine:
         """
         self.timeout_seconds = timeout_seconds
         self.client: Optional[Any] = None
+        self.gemini_client: Optional[str] = None
         self.model: str = "gpt-3.5-turbo"
+        self.provider: Optional[str] = None
 
-        # Initialize OpenAI client if API key available
-        api_key = os.getenv("OPENAI_API_KEY")
-        if OPENAI_AVAILABLE and api_key and api_key != "your_openai_api_key_here":
+        # Load keys
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        # Initialize Gemini if available
+        if gemini_key and gemini_key != "your_gemini_api_key_here":
+            self.gemini_client = gemini_key
+            env_model = os.getenv("LLM_MODEL")
+            if env_model and "gemini" in env_model.lower():
+                self.model = env_model
+            else:
+                self.model = "gemini-2.5-flash"
+            self.provider = "gemini"
+            logger.info(f"XAI Engine initialized with Gemini using model {self.model}")
+        # Otherwise initialize OpenAI
+        elif OPENAI_AVAILABLE and openai_key and openai_key != "your_openai_api_key_here":
             try:
-                self.client = AsyncOpenAI(api_key=api_key)
-                self.model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
-                logger.info(f"XAI Engine initialized with {self.model}")
+                self.client = AsyncOpenAI(api_key=openai_key)
+                env_model = os.getenv("LLM_MODEL")
+                self.model = env_model if env_model else "gpt-3.5-turbo"
+                self.provider = "openai"
+                logger.info(f"XAI Engine initialized with OpenAI using model {self.model}")
             except Exception as e:
                 logger.warning(f"Failed to initialize OpenAI client: {e}")
                 self.client = None
+                self.provider = None
         else:
             logger.info("XAI Engine using rule-based explanations (no LLM API key)")
 
@@ -218,18 +236,30 @@ class XAIEngine:
         )
 
         # Try LLM if available
-        if self.client:
+        if self.provider == "gemini" and self.gemini_client:
+            try:
+                explanation = await asyncio.wait_for(
+                    self._call_gemini(prompt),
+                    timeout=self.timeout_seconds
+                )
+                logger.info(f"Generated Gemini explanation for fraud probability: {fraud_probability:.2f}")
+                return explanation
+            except asyncio.TimeoutError:
+                logger.warning("Gemini call timed out, using rule-based fallback")
+            except Exception as e:
+                logger.warning(f"Gemini call failed: {e}, using rule-based fallback")
+        elif self.provider == "openai" and self.client:
             try:
                 explanation = await asyncio.wait_for(
                     self._call_llm(prompt),
                     timeout=self.timeout_seconds
                 )
-                logger.info(f"Generated LLM explanation for fraud probability: {fraud_probability:.2f}")
+                logger.info(f"Generated OpenAI explanation for fraud probability: {fraud_probability:.2f}")
                 return explanation
             except asyncio.TimeoutError:
-                logger.warning("LLM call timed out, using rule-based fallback")
+                logger.warning("OpenAI call timed out, using rule-based fallback")
             except Exception as e:
-                logger.warning(f"LLM call failed: {e}, using rule-based fallback")
+                logger.warning(f"OpenAI call failed: {e}, using rule-based fallback")
 
         # Fallback to rule-based explanation
         return generate_rule_based_explanation(
@@ -240,7 +270,7 @@ class XAIEngine:
 
     async def _call_llm(self, prompt: str) -> str:
         """
-        Call LLM API for explanation.
+        Call OpenAI API for explanation.
 
         Args:
             prompt: Formatted prompt string.
@@ -260,11 +290,52 @@ class XAIEngine:
 
         return response.choices[0].message.content.strip()
 
-    async def generate_explanation_sync(self, context: Dict[str, Any]) -> str:
+    async def _call_gemini(self, prompt: str) -> str:
+        """
+        Call Google Gemini API for explanation via raw HTTP requests.
+
+        Args:
+            prompt: Formatted prompt string.
+
+        Returns:
+            Gemini response string.
+        """
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.gemini_client}"
+
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ],
+            "systemInstruction": {
+                "parts": [
+                    {"text": "You are a financial fraud analysis expert."}
+                ]
+            },
+            "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 150
+            }
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=self.timeout_seconds)
+            response.raise_for_status()
+            data = response.json()
+            # Extract text response from Gemini response format
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            return text.strip()
+
+    def generate_explanation_sync(self, context: Dict[str, Any]) -> str:
         """
         Synchronous wrapper for generate_explanation.
 
-        For use in sync contexts, creates a new event loop.
+        For use in sync contexts, executing the underlying coroutine properly.
 
         Args:
             context: Explanation context dictionary.
@@ -274,14 +345,23 @@ class XAIEngine:
         """
         try:
             loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Create a new task
-                return await asyncio.create_task(self.generate_explanation(context))
-            else:
-                return await self.generate_explanation(context)
         except RuntimeError:
-            # No event loop, create one
-            return await asyncio.run(self.generate_explanation(context))
+            loop = None
+
+        if loop is not None and loop.is_running():
+            import concurrent.futures
+            # Schedule the coroutine in the running loop, and wait for the result
+            # inside a ThreadPoolExecutor to prevent blocking runtime errors/deadlocks
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    lambda: asyncio.run_coroutine_threadsafe(
+                        self.generate_explanation(context), loop
+                    ).result()
+                )
+                return future.result()
+        else:
+            # No running event loop in this thread, run with asyncio.run
+            return asyncio.run(self.generate_explanation(context))
 
 
 def create_xai_engine(timeout_seconds: int = 3) -> XAIEngine:

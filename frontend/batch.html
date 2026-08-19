@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSecure AI - CSV Batch Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js CDN for visual analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🔐</span>
+            <span>FinSecure AI - Batch Analysis</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-btn">📝 Manual Entry</a>
+            <a href="realtime.html" class="nav-btn">📡 Real-Time Scanner</a>
+            <a href="batch.html" class="nav-btn active">📁 Batch Analysis</a>
+            <a href="dataset.html" class="nav-btn">📊 Dataset & Training</a>
+        </nav>
+        <div class="connection-status">
+            <span class="status-dot" id="connectionDot"></span>
+            <span id="connectionText">Connected</span>
+        </div>
+    </header>
+
+    <main class="batch-container">
+        <!-- Control Card: Upload or Select Holdout -->
+        <section class="panel batch-upload-panel">
+            <h2 class="panel-title">📥 Upload Transactions or Select Holdout Dataset</h2>
+            <div class="upload-actions">
+                <div class="file-upload-box">
+                    <label class="file-upload-label" for="csvFileInput">
+                        📁 Choose CSV File
+                    </label>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                    <span id="fileNameDisplay" class="file-name-text">No file chosen</span>
+                </div>
+                <button class="btn btn-primary" id="analyzeCsvBtn" disabled>
+                    ⚡ Analyze Uploaded CSV
+                </button>
+                <button class="btn btn-secondary" id="loadHoldoutBtn">
+                    🎯 Load Pre-Split Holdout Dataset (~5,000 rows)
+                </button>
+            </div>
+        </section>
+
+        <!-- Summary Bar -->
+        <section class="panel summary-bar-panel" id="summaryPanel" style="display: none;">
+            <h2 class="panel-title">📈 Batch Evaluation Summary</h2>
+            <div class="summary-metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Total Scored</span>
+                    <span class="metric-value" id="summaryTotalScored">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Flagged Fraud</span>
+                    <span class="metric-value danger" id="summaryFlagged">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Accuracy</span>
+                    <span class="metric-value safe" id="summaryAccuracy">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Precision</span>
+                    <span class="metric-value warning" id="summaryPrecision">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Recall</span>
+                    <span class="metric-value warning" id="summaryRecall">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">F1-Score</span>
+                    <span class="metric-value safe" id="summaryF1">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Avg Latency</span>
+                    <span class="metric-value" id="summaryLatency">0 ms</span>
+                </div>
+            </div>
+            <div id="groundTruthNoticeBanner" style="display:none; margin-top:1rem; padding:0.75rem 1rem; background:rgba(59, 130, 246, 0.15); border:1px solid #3b82f6; border-radius:6px; color:#93c5fd; font-size:0.9rem; font-weight: 500;">
+                ℹ️ <strong>Ground truth labels ('isFraud') not found in CSV</strong> — showing predictions only.
+            </div>
+        </section>
+
+        <!-- Confusion Matrix Panel (Shown when ground truth is present) -->
+        <section class="panel" id="confusionMatrixPanel" style="display: none;">
+            <h2 class="panel-title">🎯 Model Performance & Confusion Matrix (Ground Truth Present)</h2>
+            <div class="confusion-matrix-container">
+                <div class="cm-cell">
+                    <span class="cm-title">🛡️ True Negatives (TN)</span>
+                    <span class="cm-value safe" id="cmTN">0</span>
+                </div>
+                <div class="cm-cell">
+                    <span class="cm-title">⚠️ False Positives (FP)</span>
+                    <span class="cm-value warning" id="cmFP">0</span>
+                </div>
+                <div class="cm-cell">
+                    <span class="cm-title">🚨 False Negatives (FN)</span>
+                    <span class="cm-value danger" id="cmFN">0</span>
+                </div>
+                <div class="cm-cell">
+                    <span class="cm-title">‼️ True Positives (TP)</span>
+                    <span class="cm-value danger" id="cmTP">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Charts Panel -->
+        <section class="panel" id="chartsPanel" style="display: none;">
+            <h2 class="panel-title">📊 Analytics & Distributions</h2>
+            <div class="dataset-grid">
+                <div class="chart-box">
+                    <h3 class="explanation-title" style="margin-bottom: 0.75rem;">Fraud Probability Distribution</h3>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="probDistChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h3 class="explanation-title" style="margin-bottom: 0.75rem;">Flagged Transactions by Type</h3>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="typeBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sortable & Filterable Results Table -->
+        <section class="panel batch-table-panel" id="tablePanel" style="display: none;">
+            <div class="table-header-controls">
+                <h2 class="panel-title">📋 Transaction Batch Results</h2>
+                <div class="filter-controls">
+                    <span class="filter-label">Filter:</span>
+                    <button class="filter-btn active" data-filter="ALL">All Rows</button>
+                    <button class="filter-btn" data-filter="FLAGGED">🚨 Flagged Fraud</button>
+                    <button class="filter-btn filter-fp" data-filter="FP">⚠️ False Positives</button>
+                    <button class="filter-btn filter-fn" data-filter="FN">🚨 False Negatives</button>
+                    <button class="filter-btn filter-tp" data-filter="TP">‼️ True Positives</button>
+                    <button class="filter-btn filter-tn" data-filter="TN">🛡️ True Negatives</button>
+                    <button class="btn btn-secondary" id="exportFlaggedBtn" style="margin-left: 0.75rem;">📥 Export Flagged CSV</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="batch-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Amount (₹)</th>
+                            <th>Fraud Probability</th>
+                            <th>Predicted Risk</th>
+                            <th>Actual isFraud</th>
+                            <th>Match Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTableBody">
+                        <!-- Table rows generated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-controls">
+                <button class="btn btn-secondary" id="prevPageBtn" disabled>◀ Previous</button>
+                <span id="pageIndicator" class="page-indicator">Page 1 of 1</span>
+                <button class="btn btn-secondary" id="nextPageBtn" disabled>Next ▶</button>
+            </div>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div class="loading" id="batchLoading">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">Scoring batch transactions & computing performance metrics...</p>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/batch.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+</html>

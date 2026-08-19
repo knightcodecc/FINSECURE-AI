@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSecure AI - Dataset & Training Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🔐</span>
+            <span>FinSecure AI - Dataset & Training Dashboard</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-btn">📝 Manual Entry</a>
+            <a href="realtime.html" class="nav-btn">📡 Real-Time Scanner</a>
+            <a href="batch.html" class="nav-btn">📁 Batch Analysis</a>
+            <a href="dataset.html" class="nav-btn active">📊 Dataset & Training</a>
+        </nav>
+        <div class="connection-status">
+            <span class="status-dot" id="connectionDot"></span>
+            <span id="connectionText">Connected</span>
+        </div>
+    </header>
+
+    <main class="dataset-container">
+        <!-- Section 1: PaySim1 Dataset Characteristics -->
+        <section class="panel">
+            <h2 class="panel-title">🗂️ PaySim1 Dataset Characteristics</h2>
+            
+            <div class="summary-metrics-grid" style="margin-bottom: 1.5rem;">
+                <div class="metric-card">
+                    <span class="metric-label">Total Transactions</span>
+                    <span class="metric-value" id="dsTotalTx">6,362,620</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Legitimate Count</span>
+                    <span class="metric-value safe" id="dsLegitCount">6,354,407</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Fraud Count</span>
+                    <span class="metric-value danger" id="dsFraudCount">8,213</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Fraud Ratio</span>
+                    <span class="metric-value warning" id="dsFraudRatio">0.1291%</span>
+                </div>
+            </div>
+
+            <div class="dataset-grid">
+                <!-- Class Imbalance Donut Chart -->
+                <div class="chart-box">
+                    <h3 class="explanation-title">🍩 Class Balance Distribution</h3>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="classBalanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Transaction Type Bar Chart -->
+                <div class="chart-box">
+                    <h3 class="explanation-title">📊 Transaction Type Distribution</h3>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="typeDistChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amount Distribution Summary -->
+            <div style="margin-top: 1.5rem;">
+                <h3 class="explanation-title">💰 Transaction Amount Distribution Summary</h3>
+                <div class="summary-metrics-grid" style="margin-top: 0.75rem;">
+                    <div class="metric-card">
+                        <span class="metric-label">Mean Amount</span>
+                        <span class="metric-value" id="amtMean">₹179,861.90</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Median Amount</span>
+                        <span class="metric-value" id="amtMedian">₹74,871.94</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Min Amount</span>
+                        <span class="metric-value" id="amtMin">₹0.00</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Max Amount</span>
+                        <span class="metric-value danger" id="amtMax">₹92,445,516.64</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Model Training & Evaluation Performance -->
+        <section class="panel">
+            <h2 class="panel-title">⚡ XGBoost Model Training Performance</h2>
+
+            <div class="summary-metrics-grid" style="margin-bottom: 1.5rem;">
+                <div class="metric-card">
+                    <span class="metric-label">Accuracy</span>
+                    <span class="metric-value safe" id="mdlAccuracy">99.99%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Precision</span>
+                    <span class="metric-value safe" id="mdlPrecision">100.00%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Recall</span>
+                    <span class="metric-value safe" id="mdlRecall">99.88%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">F1-Score</span>
+                    <span class="metric-value safe" id="mdlF1">99.94%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">ROC-AUC</span>
+                    <span class="metric-value safe" id="mdlRocAuc">1.0000</span>
+                </div>
+            </div>
+
+            <div class="dataset-grid">
+                <!-- Confusion Matrix Grid -->
+                <div class="chart-box">
+                    <h3 class="explanation-title">🧩 Confusion Matrix (Test Split: 954,393 rows)</h3>
+                    <div class="confusion-matrix-container">
+                        <div class="cm-cell">
+                            <span class="cm-title">🛡️ True Negatives (TN)</span>
+                            <span class="cm-value safe" id="cmTN">950,383</span>
+                        </div>
+                        <div class="cm-cell">
+                            <span class="cm-title">⚠️ False Positives (FP)</span>
+                            <span class="cm-value warning" id="cmFP">0</span>
+                        </div>
+                        <div class="cm-cell">
+                            <span class="cm-title">🚨 False Negatives (FN)</span>
+                            <span class="cm-value danger" id="cmFN">5</span>
+                        </div>
+                        <div class="cm-cell">
+                            <span class="cm-title">‼️ True Positives (TP)</span>
+                            <span class="cm-value danger" id="cmTP">4,005</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature Importance Chart -->
+                <div class="chart-box">
+                    <h3 class="explanation-title">🌟 Top 10 Feature Importances</h3>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="featureImportanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Model Limitations & Feature Leakage Disclosure -->
+        <section class="panel" style="margin-top: 1.5rem;">
+            <h2 class="panel-title">⚠️ Model Limitations & Feature Leakage Disclosure</h2>
+            <div style="background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 8px; padding: 1.25rem; color: var(--text-primary);">
+                <h3 style="font-size: 1.05rem; color: var(--accent-warning); margin-bottom: 0.75rem;">PaySim Simulator Generation Artifacts</h3>
+                <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 1rem;">
+                    In the synthetic PaySim dataset, fraudulent transactions leave predictable balance discrepancies (<code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">account_drained</code>, <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">balance_error_orig</code>, <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">orig_balance_zero</code>). 
+                    These 6 synthetic balance-artifact features account for <strong>55.27%</strong> of the deployed model's total feature importance weight.
+                </p>
+                <div class="summary-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem;">
+                    <div class="metric-card">
+                        <span class="metric-label">Synthetic Feature Weight</span>
+                        <span class="metric-value warning">55.27%</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Ablation Precision (No Artifacts)</span>
+                        <span class="metric-value safe">98.15%</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Ablation Recall (No Artifacts)</span>
+                        <span class="metric-value safe">95.11%</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Ablation F1-Score</span>
+                        <span class="metric-value safe">96.61%</span>
+                    </div>
+                </div>
+                <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); margin: 0;">
+                    <em>Ablation Finding:</em> When all 6 synthetic balance-artifact features are completely removed, the model still achieves <strong>98.15% Precision</strong> and <strong>95.11% Recall</strong> on the 954,393-row test split using transaction type encodings and behavioral balance ratios. This demonstrates that the model retains strong, non-leaked predictive performance.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/dataset.js"></script>
+</body>
+</html>

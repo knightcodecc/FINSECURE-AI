@@ -43,6 +43,8 @@ class TransactionInput(BaseModel):
     newbalanceOrig: float = Field(..., ge=0, description="Sender balance after transaction")
     oldbalanceDest: float = Field(..., ge=0, description="Receiver balance before transaction")
     newbalanceDest: float = Field(..., ge=0, description="Receiver balance after transaction")
+    nameOrig: Optional[str] = Field(default="", description="Sender account identifier")
+    nameDest: Optional[str] = Field(default="", description="Receiver account identifier")
 
     @field_validator('type', mode='before')
     @classmethod
@@ -51,7 +53,7 @@ class TransactionInput(BaseModel):
         if isinstance(v, TransactionType):
             return v
         if isinstance(v, str):
-            v_upper = v.upper()
+            v_upper = v.strip().upper()
             for enum_val in TransactionType:
                 if enum_val.value == v_upper:
                     return enum_val
@@ -181,3 +183,52 @@ class StatsSummaryResponse(BaseModel):
     total_fraud_amount: float = Field(..., description="Total amount involved in fraud")
     average_fraud_probability: float = Field(..., description="Average fraud probability")
     risk_level_distribution: dict = Field(..., description="Distribution by risk level")
+
+
+class BatchCsvRowResult(BaseModel):
+    """Per-row result for CSV batch prediction."""
+    row_id: int
+    step: int
+    type: str
+    amount: float
+    fraud_probability: float
+    predicted_label: bool
+    risk_level: str
+    actual_is_fraud: Optional[int] = None
+    is_correct: Optional[bool] = None
+    result_type: Optional[str] = None  # "TP", "FP", "TN", "FN"
+
+
+class BatchCsvSummary(BaseModel):
+    """Summary metrics for CSV batch prediction."""
+    total_scored: int
+    flagged_count: int
+    actual_fraud_count: Optional[int] = None
+    true_positives: Optional[int] = None
+    false_positives: Optional[int] = None
+    true_negatives: Optional[int] = None
+    false_negatives: Optional[int] = None
+    accuracy: Optional[float] = None
+    precision: Optional[float] = None
+    recall: Optional[float] = None
+    f1_score: Optional[float] = None
+    avg_processing_time_ms: float
+    has_ground_truth: bool = True
+
+
+class BatchCsvResponse(BaseModel):
+    """Response model for CSV batch prediction endpoint."""
+    summary: BatchCsvSummary
+    rows: List[BatchCsvRowResult]
+
+
+class DatasetMetricsResponse(BaseModel):
+    """Response model for dataset characteristics and model performance metrics."""
+    total_transactions: int
+    legitimate_count: int
+    fraud_count: int
+    fraud_percentage: float
+    transaction_types: dict
+    amount_stats: dict
+    model_metrics: dict
+    feature_importances: List[dict]

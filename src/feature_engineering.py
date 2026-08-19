@@ -34,7 +34,9 @@ NUMERIC_FEATURES: List[str] = [
     'log_newbalanceOrig',
     'log_oldbalanceDest',
     'log_newbalanceDest',
-    'orig_to_dest_ratio'
+    'orig_to_dest_ratio',
+    'recency_hours',
+    'txn_count_24h'
 ]
 
 
@@ -293,9 +295,32 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     result_df['hour_of_day'] = hour_of_day(result_df)
     result_df['is_high_risk_hour'] = is_high_risk_hour(result_df).astype('int8')
 
+    # Velocity & Novelty features
+    if 'is_dest_new' not in result_df.columns:
+        if 'nameOrig' in result_df.columns and 'nameDest' in result_df.columns:
+            pair = result_df['nameOrig'].astype(str) + '_' + result_df['nameDest'].astype(str)
+            result_df['is_dest_new'] = (~pair.duplicated()).astype('int8')
+        else:
+            result_df['is_dest_new'] = 1
+
+    if 'recency_hours' not in result_df.columns:
+        if 'nameOrig' in result_df.columns and 'step' in result_df.columns:
+            result_df['prev_step'] = result_df.groupby('nameOrig')['step'].shift(1)
+            result_df['recency_hours'] = (result_df['step'] - result_df['prev_step']).fillna(999.0).astype('float32')
+            result_df.drop(columns=['prev_step'], inplace=True)
+        else:
+            result_df['recency_hours'] = 999.0
+
+    if 'txn_count_24h' not in result_df.columns:
+        if 'nameOrig' in result_df.columns and 'step' in result_df.columns:
+            step_window = result_df['step'] // 24
+            result_df['txn_count_24h'] = result_df.groupby(['nameOrig', step_window])['step'].transform('count').astype('int16')
+        else:
+            result_df['txn_count_24h'] = 1
+
     # Get feature names (excluding original columns and target)
-    original_cols = ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-                     'oldbalanceDest', 'newbalanceDest', 'isFraud']
+    original_cols = ['step', 'type', 'nameOrig', 'nameDest', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
+                     'oldbalanceDest', 'newbalanceDest', 'isFraud', 'isFlaggedFraud']
     one_hot_cols = [col for col in result_df.columns if col.startswith('type_')]
 
     feature_cols = [col for col in result_df.columns
@@ -367,9 +392,9 @@ def get_feature_columns() -> List[str]:
         'account_drained',
         'amount_gt_orig_balance',
         'dest_balance_unchanged',
-        'orig_to_dest_ratio',
         'hour_of_day',
-        'is_high_risk_hour'
+        'is_high_risk_hour',
+        'is_dest_new'
     ]
 
 

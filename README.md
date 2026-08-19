@@ -8,13 +8,13 @@ A production-ready fraud detection system that ingests financial transaction dat
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         FinSecure AI                                │
 ├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐ │
-│  │   PaySim1    │───▶│  Preprocessing   │───▶│ Feature Engine   │ │
-│  │   Dataset    │    │   (src/preprocess)│    │(src/feature_eng) │ │
-│  │   (6.3M)     │    └──────────────────┘    └──────────────────┘ │
-│  └──────────────┘              │                      │            │
-│                                ▼                      ▼            │
+│                                                                     │
+│  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐   │
+│  │   PaySim1    │───▶│  Preprocessing   │───▶│ Feature Engine   │  │
+│  │   Dataset    │    │   (src/preprocess)│    │(src/feature_eng) │  │
+│  │   (6.3M)     │    └──────────────────┘    └──────────────────┘   │
+│  └──────────────┘              │                      │             │
+│                                ▼                      ▼             │
 │                    ┌──────────────────┐    ┌──────────────────┐    │
 │                    │  Train Model     │    │    Scaler        │    │
 │                    │(src/train_model) │───▶│  (StandardScaler)│    │
