@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinSecure AI v2 — Analyst Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: rgba(22, 30, 46, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .status-badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--glass-shadow);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      margin-top: 12px;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+
+    .result-pill {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+
+    }
+
+    .pill-fraud { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+    .pill-clean { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+
+    .banner-retrain {
+      background: rgba(239, 68, 68, 0.25);
+      border: 1px solid #ef4444;
+      color: #f87171;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 16px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 1.0; }
+      100% { opacity: 0.8; }
+    }
+
+    .chat-box {
+      height: 180px;
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chat-msg {
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .chat-user { color: var(--accent-blue); font-weight: 600; }
+    .chat-bot { color: var(--text-main); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">F</div>
+      <div>
+        <h2>FinSecure AI v2</h2>
+        <p style="font-size: 12px; color: var(--text-muted);">Real-Time Fraud Detection & SHAP-Grounded XAI</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <span class="status-badge" id="active-strategy-badge">Strategy: cost_optimal</span>
+      <span class="status-badge" id="active-thresh-badge">Active Thresh: 0.2971</span>
+    </div>
+  </header>
+
+  <div class="grid-container">
+
+    <!-- Left Column: Transaction Scorer & SHAP Explainer -->
+    <div>
+      <div class="card">
+        <div class="card-title">Real-Time Transaction Scorer</div>
+        <form id="tx-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Transaction Type</label>
+              <select id="type">
+                <option value="TRANSFER">TRANSFER</option>
+                <option value="CASH_OUT">CASH_OUT</option>
+                <option value="PAYMENT">PAYMENT</option>
+                <option value="CASH_IN">CASH_IN</option>
+                <option value="DEBIT">DEBIT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount (Rs.)</label>
+              <input type="number" id="amount" value="500000.0" step="100">
+            </div>
+            <div class="form-group">
+              <label>Origin Account ID</label>
+              <input type="text" id="nameOrig" value="C123456789">
+            </div>
+            <div class="form-group">
+              <label>Destination Account ID</label>
+              <input type="text" id="nameDest" value="M987654321">
+            </div>
+            <div class="form-group">
+              <label>Origin Initial Balance</label>
+              <input type="number" id="oldbalanceOrg" value="500000.0">
+            </div>
+            <div class="form-group">
+              <label>Origin Final Balance</label>
+              <input type="number" id="newbalanceOrig" value="0.0">
+            </div>
+            <div class="form-group">
+              <label>Destination Initial Balance</label>
+              <input type="number" id="oldbalanceDest" value="0.0">
+            </div>
+            <div class="form-group">
+              <label>Destination Final Balance</label>
+              <input type="number" id="newbalanceDest" value="0.0">
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Score Transaction & Generate SHAP Explanation</button>
+        </form>
+      </div>
+
+      <div class="card" id="explanation-card">
+        <div class="card-title">
+          <span>SHAP Grounded Explanation</span>
+          <span id="result-pill-container"></span>
+        </div>
+        <p id="explanation-text" style="font-size: 14px; margin-bottom: 16px; color: var(--text-main);">
+          Submit a transaction above to view mathematical SHAP contribution bar chart and grounded LLM explanation.
+        </p>
+        <div style="height: 220px;">
+          <canvas id="shapChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Concept Drift, Cost Savings, and RAG Chatbot -->
+    <div>
+
+      <!-- Retrain Banner -->
+      <div id="retrain-banner" class="banner-retrain" style="display: none;">
+        ⚠️ RETRAIN RECOMMENDED: Concept Drift Threshold Exceeded (PSI > 0.25)
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Concept Drift Monitor</span>
+          <button id="btn-simulate-drift" class="btn-warning" style="width: auto; padding: 6px 16px;">Simulate Drift (5x Amount)</button>
+        </div>
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div>Status: <strong id="drift-overall-status">STABLE</strong></div>
+          <div>Score PSI: <strong id="drift-score-psi">0.0210</strong></div>
+          <div>Drifted Features: <strong id="drifted-count">0</strong></div>
+        </div>
+        <div style="height: 180px;">
+          <canvas id="psiChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Cost Savings Card -->
+      <div class="card">
+        <div class="card-title">Cost-Sensitive Evaluation Summary</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="background: rgba(16, 185, 129, 0.1); padding: 16px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
+            <div style="font-size: 12px; color: var(--text-muted);">Est. Rs. Saved vs No Model</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--accent-green);" id="cost-saved-val">Rs. 300.00</div>
+          </div>
+          <div style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3);">
+            <div style="font-size: 12px; color: var(--text-muted);">Cost-Optimal Thresh</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--accent-blue);" id="cost-thresh-val">0.2971</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAG Chatbot Widget -->
+      <div class="card">
+        <div class="card-title">RAG Audit Chatbot</div>
+        <div class="chat-box" id="chat-box">
+          <div class="chat-msg"><span class="chat-bot">Bot:</span> Hello analyst! Ask me about recent predictions, SHAP reasons, or concept drift status.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="chat-input" placeholder="Ask e.g. Why was the transaction flagged?">
+          <button id="btn-chat-send" class="btn-primary" style="width: 100px; margin-top: 0;">Send</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

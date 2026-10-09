@@ -1,0 +1,22 @@
+# Core (carried over from v1)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.4
+xgboost>=2.0
+joblib>=1.3
+pydantic>=2.6
+websockets>=12.0
+python-dotenv>=1.0
+
+# v2 additions
+networkx>=3.2        # graph_features.py — swap to python-igraph for full-scale runs
+shap>=0.45            # xai_engine.py — grounded explanations
+pyarrow>=15.0          # parquet I/O for graph-feature output
+apscheduler>=3.10      # drift_monitor.py scheduled checks
+matplotlib>=3.8        # cost_sensitive_eval.py threshold-vs-cost plots
+
+# Testing
+pytest>=8.0
+httpx>=0.27           # FastAPI test client
