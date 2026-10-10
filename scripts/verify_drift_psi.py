@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import joblib
 import numpy as np
 import pandas as pd
-from src.drift_monitor import DriftMonitor, EXCLUDED_PSI_COLS
+from src.drift_monitor import DriftMonitor, EXCLUDED_PSI_COLS, simulate_drift
 
 TRAIN_PATH = Path("data/features_train.parquet")
 VAL_PATH = Path("data/features_val.parquet")
@@ -47,40 +47,8 @@ def main():
     shift_probas = model.predict_proba(shift_df[feature_cols])[:, 1]
     res_shift = monitor.check(shift_df, recent_probas=shift_probas)
 
-    scaler = joblib.load(Path("models/scaler.joblib"))
-
     # 3. Amount x5 Window (Clean test split with amount_raw * 5.0 and recomputed dependent features)
-    amt_x5_df = test_df.copy()
-    raw_amt = amt_x5_df["amount_raw"] * 5.0
-    amt_x5_df["amount_raw"] = raw_amt
-
-    feature_names = list(scaler.feature_names_in_)
-    def get_raw(col_name):
-        idx = feature_names.index(col_name)
-        return amt_x5_df[col_name] * scaler.scale_[idx] + scaler.mean_[idx]
-
-    raw_old_orig = get_raw("oldbalanceOrg")
-    raw_new_orig = get_raw("newbalanceOrig")
-    raw_old_dest = get_raw("oldbalanceDest")
-    raw_new_dest = get_raw("newbalanceDest")
-
-    raw_err_orig = raw_new_orig + raw_amt - raw_old_orig
-    raw_err_dest = raw_old_dest + raw_amt - raw_new_dest
-    raw_log_amt = np.log1p(raw_amt)
-    raw_ratio_orig = raw_amt / (raw_old_orig + 1.0)
-    raw_ratio_dest = raw_amt / (raw_old_dest + 1.0)
-
-    def set_scaled(col_name, raw_vec):
-        idx = feature_names.index(col_name)
-        amt_x5_df[col_name] = (raw_vec - scaler.mean_[idx]) / scaler.scale_[idx]
-
-    set_scaled("amount", raw_amt)
-    set_scaled("log_amount", raw_log_amt)
-    set_scaled("errorBalanceOrig", raw_err_orig)
-    set_scaled("errorBalanceDest", raw_err_dest)
-    set_scaled("amount_to_oldbalanceOrg_ratio", raw_ratio_orig)
-    set_scaled("amount_to_oldbalanceDest_ratio", raw_ratio_dest)
-
+    amt_x5_df = simulate_drift(test_df, amount_scale=5.0)
     x5_probas = model.predict_proba(amt_x5_df[feature_cols])[:, 1]
     res_amt_x5 = monitor.check(amt_x5_df, recent_probas=x5_probas)
 

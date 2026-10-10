@@ -140,6 +140,17 @@ def attach_graph_features_expanding(df: pd.DataFrame, step_batch_size: int | Non
         batch_mask = (steps >= batch_start) & (steps < batch_end)
         history_mask = steps < batch_start
 
+        # Memory safeguard check
+        try:
+            import psutil
+            max_rss_gb = float(os.getenv("MAX_GRAPH_RSS_GB", "20.0"))
+            curr_rss_gb = psutil.Process().memory_info().rss / (1024 ** 3)
+            if curr_rss_gb > max_rss_gb:
+                print(f"\n[WARNING GRAPH MEMORY SAFEGUARD]: Current RSS memory ({curr_rss_gb:.2f} GB) exceeded limit ({max_rss_gb:.2f} GB). Stopping cleanly.")
+                break
+        except Exception:
+            pass
+
         batch_df = df.loc[batch_mask].copy()
         if batch_df.empty:
             continue

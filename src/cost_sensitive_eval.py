@@ -24,6 +24,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
+def get_unscaled_amounts(df: pd.DataFrame, scaler=None) -> np.ndarray:
+    """
+    Extract raw rupee amounts from DataFrame, unscaling using scaler if amount_raw is absent.
+    Prevents passing scaled Z-scores to cost-sensitive evaluation functions.
+    """
+    if "amount_raw" in df.columns:
+        return df["amount_raw"].values.astype(float)
+    if "amount" in df.columns:
+        if scaler is not None:
+            feature_names = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else None
+            if feature_names is not None and "amount" in feature_names:
+                idx = list(feature_names).index("amount")
+            else:
+                idx = 0
+            mean = scaler.mean_[idx]
+            scale = scaler.scale_[idx]
+            return np.maximum(0.0, df["amount"].values * scale + mean)
+        else:
+            return df["amount"].values.astype(float)
+    raise KeyError("DataFrame must contain 'amount_raw' or 'amount' column")
+
+
 def expected_cost(
     y_true: np.ndarray,
     y_pred_proba: np.ndarray,

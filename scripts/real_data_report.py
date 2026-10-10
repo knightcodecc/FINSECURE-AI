@@ -85,10 +85,17 @@ def main():
     if shift_df is not None and len(shift_df) > 0:
         print(f"Shift Split: {len(shift_df):>7,} rows | Fraud: {shift_df['isFraud'].sum():>5,} ({shift_df['isFraud'].mean()*100:.2f}%)")
 
+    from src.cost_sensitive_eval import expected_cost, threshold_sweep, get_unscaled_amounts
+    import joblib
+
+    scaler_path = Path("models/scaler.joblib")
+    scaler = joblib.load(scaler_path) if scaler_path.exists() else None
+
     # Base Rate and Raw Rupee Amounts
     y_test = test_df["isFraud"].values
     base_rate = float(y_test.mean())
-    amounts_test = test_df["amount_raw"].values if "amount_raw" in test_df.columns else test_df["amount"].values
+    amounts_test = get_unscaled_amounts(test_df, scaler)
+    amounts_val = get_unscaled_amounts(val_df, scaler)
 
     # Baselines
     cost_flag_nothing = float(np.sum(amounts_test[y_test == 1]))
@@ -125,7 +132,15 @@ def main():
     y_val = val_df["isFraud"].values
     has_mechanism = "mechanism" in test_df.columns and "MECH_B_RING" in test_df["mechanism"].values
 
+    n_neg = np.sum(train_df["isFraud"].values == 0)
+    n_pos = np.sum(train_df["isFraud"].values == 1)
+    scale_pos_weight = n_neg / max(n_pos, 1)
+
     eval_results = {}
+
+    print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
+    print(f"{'Variant':<28} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE?':<10}")
+    print("-" * 135)
 
     for v_name, v_cols in variants:
         if not v_cols:
@@ -136,27 +151,29 @@ def main():
         X_te = test_df[v_cols]
 
         model = xgb.XGBClassifier(
-            n_estimators=100,
-            max_depth=5,
+            n_estimators=300,
+            max_depth=6,
             learning_rate=0.05,
             subsample=0.8,
             colsample_bytree=0.8,
+            scale_pos_weight=scale_pos_weight,
             random_state=42,
             eval_metric="logloss",
-            n_jobs=-1
+            early_stopping_rounds=30,
         )
-        model.fit(X_tr, y_tr)
+        model.fit(X_tr, y_tr, eval_set=[(X_va, y_val)], verbose=False)
 
         p_va = model.predict_proba(X_va)[:, 1]
         p_te = model.predict_proba(X_te)[:, 1]
 
-        t_f2 = tune_f2_threshold(y_val, p_va)
+        from src.cost_sensitive_eval import threshold_sweep
+        _, f2_opt, cost_opt = threshold_sweep(y_val, p_va, amounts_val)
 
         pr_auc = average_precision_score(y_test, p_te)
         roc_auc = roc_auc_score(y_test, p_te)
-        pr_ci, cost_ci = bootstrap_pr_auc_and_cost_ci(y_test, p_te, t_f2, amounts_test)
+        pr_ci, cost_ci = bootstrap_pr_auc_and_cost_ci(y_test, p_te, cost_opt, amounts_test)
 
-        preds_te = (p_te >= t_f2).astype(int)
+        preds_te = (p_te >= cost_opt).astype(int)
         rec = float(np.sum((preds_te == 1) & (y_test == 1)) / max(np.sum(y_test == 1), 1))
 
         if has_mechanism:
@@ -172,8 +189,20 @@ def main():
             ring_rec = None
             ring_str = "N/A"
 
-        cost_res = expected_cost(y_test, p_te, t_f2, amounts_test)
+        cost_res = expected_cost(y_test, p_te, cost_opt, amounts_test)
         tot_cost = float(cost_res["total_cost"])
+
+        # Cost Table Programmatic Integrity Assertions
+        total_fraud_amt = float(np.sum(amounts_test[y_test == 1]))
+        caught = float(cost_res["amount_caught"])
+        missed = float(cost_res["amount_missed"])
+        fp_count = int(cost_res["fp"])
+        
+        if abs((caught + missed) - total_fraud_amt) >= 0.01:
+            raise RuntimeError(f"Row Integrity Break: Caught ({caught:.2f}) + Missed ({missed:.2f}) != Total Fraud ({total_fraud_amt:.2f})")
+        expected_cost_calc = missed + 50.0 * fp_count
+        if abs(tot_cost - expected_cost_calc) >= 0.01:
+            raise RuntimeError(f"Row Integrity Break: Cost ({tot_cost:.2f}) != Missed ({missed:.2f}) + 50*FP ({expected_cost_calc:.2f})")
 
         beats_fn = tot_cost < cost_flag_nothing
         beats_fe = tot_cost < cost_flag_everything
@@ -182,7 +211,7 @@ def main():
             "pr_auc": pr_auc,
             "pr_ci": pr_ci,
             "roc_auc": roc_auc,
-            "t_f2": t_f2,
+            "t_cost": cost_opt,
             "cost": tot_cost,
             "cost_ci": cost_ci,
             "ring_rec": ring_rec,
@@ -190,19 +219,29 @@ def main():
             "beats_fe": beats_fe,
         }
 
-        print(f"[{v_name:<28}] PR-AUC: {pr_auc:.4f} (Base Rate: {base_rate:.4f}, CI: {pr_ci[0]:.4f}..{pr_ci[1]:.4f}) | ROC-AUC: {roc_auc:.4f} | T_F2: {t_f2:.4f} | Recall: {rec*100:.1f}% | Ring Recall: {ring_str} | Cost: Rs. {tot_cost:,.2f} | Beats FN: {beats_fn} | Beats FE: {beats_fe}")
+        b_fn_str = "YES" if beats_fn else "NO"
+        b_fe_str = "YES" if beats_fe else "NO"
+        print(f"{v_name:<28} | {cost_res['tp']:<5} | {cost_res['fp']:<5} | {cost_res['fn']:<5} | {cost_res['tn']:<6} | Rs. {caught:<10,.2f} | Rs. {missed:<10,.2f} | Rs. {tot_cost:<10,.2f} | {b_fn_str:<10} | {b_fe_str:<10}")
 
-    # 4. Fraud Exposure coverage
-    print("\n=== 4. FRAUD EXPOSURE COVERAGE ON FRAUD ROWS ===")
-    if "orig_fraud_exposure" in test_df.columns and "dest_fraud_exposure" in test_df.columns:
-        fraud_test_df = test_df[test_df["isFraud"] == 1]
-        n_fraud_tot = len(fraud_test_df)
-        exp_mask = (fraud_test_df["orig_fraud_exposure"] > 0) | (fraud_test_df["dest_fraud_exposure"] > 0)
-        n_exp = int(exp_mask.sum())
-        pct_exp = (n_exp / max(n_fraud_tot, 1)) * 100
-        print(f"Fraction of fraud rows in Clean Test with fraud_exposure > 0: {n_exp} / {n_fraud_tot} ({pct_exp:.2f}%)")
-    else:
-        n_exp, n_fraud_tot, pct_exp = 0, 0, 0.0
+    print("-" * 135)
+
+    # 4. Fraud Exposure coverage across ALL rows and per split
+    print("\n=== 4. FRAUD EXPOSURE COVERAGE ANALYSIS ACROSS ALL ROWS & FRAUD ROWS ===")
+    for split_name, s_df in [("Train", train_df), ("Val", val_df), ("Clean Test", test_df)]:
+        n_all = len(s_df)
+        n_orig_pos = int((s_df["orig_fraud_exposure"] > 0).sum())
+        n_dest_pos = int((s_df["dest_fraud_exposure"] > 0).sum())
+        pct_orig = (n_orig_pos / max(n_all, 1)) * 100
+        pct_dest = (n_dest_pos / max(n_all, 1)) * 100
+        print(f"[{split_name:<10}] ALL Rows: orig_fraud_exposure > 0 = {n_orig_pos:>5,}/{n_all:,} ({pct_orig:>5.2f}%) | dest_fraud_exposure > 0 = {n_dest_pos:>5,}/{n_all:,} ({pct_dest:>5.2f}%)")
+
+    fraud_test_df = test_df[test_df["isFraud"] == 1]
+    n_fraud_tot = len(fraud_test_df)
+    exp_mask = (fraud_test_df["orig_fraud_exposure"] > 0) | (fraud_test_df["dest_fraud_exposure"] > 0)
+    n_exp = int(exp_mask.sum())
+    pct_exp = (n_exp / max(n_fraud_tot, 1)) * 100
+    print(f"Clean Test FRAUD Rows with dest_fraud_exposure > 0: {n_exp} / {n_fraud_tot} ({pct_exp:.2f}%)")
+    print("Note: orig_fraud_exposure evaluates to 0.0 for all origin accounts in PaySim because origin accounts (C*) act strictly as payment senders and do not receive inbound funds from earlier frauds.")
 
     # 5. Honest Computed Conclusion
     print("\n=== 5. DYNAMICALLY COMPUTED HONEST CONCLUSION ===")

@@ -81,3 +81,35 @@ def test_flag_nothing_cost_equals_raw_fraud_amounts_and_fails_on_scaled():
     scaled_amounts = np.array([-0.5, 0.2, 1.1, -0.8])
     with pytest.raises(ValueError, match="requires raw unscaled positive rupee amounts"):
         expected_cost(y_true, y_proba, threshold=0.5, amounts=scaled_amounts)
+
+
+def test_saved_cost_optimal_threshold_equals_validation_cost_sweep_argmin():
+    import joblib
+    from pathlib import Path
+    import pandas as pd
+    from src.cost_sensitive_eval import threshold_sweep, get_unscaled_amounts
+
+    val_path = Path("data/features_val.parquet")
+    metadata_path = Path("models/model_metadata.joblib")
+    model_path = Path("models/xgboost_model.joblib")
+    scaler_path = Path("models/scaler.joblib")
+
+    if val_path.exists() and metadata_path.exists() and model_path.exists():
+        val_df = pd.read_parquet(val_path)
+        metadata = joblib.load(metadata_path)
+        model = joblib.load(model_path)
+        scaler = joblib.load(scaler_path) if scaler_path.exists() else None
+
+        feature_cols = metadata["feature_names"]
+        X_val = val_df[feature_cols]
+        y_val = val_df["isFraud"].values
+        amt_val = get_unscaled_amounts(val_df, scaler)
+
+        val_proba = model.predict_proba(X_val)[:, 1]
+        sweep_df, f2_opt, cost_opt = threshold_sweep(y_val, val_proba, amt_val)
+
+        argmin_thresh = float(sweep_df.loc[sweep_df["total_cost"].idxmin(), "threshold"])
+        saved_cost_thresh = float(metadata["cost_optimal_threshold"])
+
+        assert abs(saved_cost_thresh - argmin_thresh) < 1e-4, f"Saved threshold {saved_cost_thresh} != argmin sweep threshold {argmin_thresh}"
+

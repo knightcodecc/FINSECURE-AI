@@ -245,13 +245,54 @@ class DriftMonitor:
 
 
 def simulate_drift(df: pd.DataFrame, amount_scale: float = 5.0) -> pd.DataFrame:
-    """Helper for demoing live drift by shifting feature distributions."""
+    """
+    Standardized drift simulator matching verify_drift_psi.py:
+    Multiplies raw amount by amount_scale, recomputes unscaled dependent features,
+    and scales features with scaler.joblib.
+    """
+    scaler_path = Path("models/scaler.joblib")
     df_shifted = df.copy()
+
     if "amount_raw" in df_shifted.columns:
-        df_shifted["amount_raw"] = df_shifted["amount_raw"] * amount_scale + 500.0
-        df_shifted["amount"] = df_shifted["amount"] * amount_scale + 2.0
-        df_shifted["log_amount"] = np.log1p(df_shifted["amount_raw"])
-    elif "amount" in df_shifted.columns:
-        df_shifted["amount"] = df_shifted["amount"] * amount_scale + 500.0
-        df_shifted["log_amount"] = np.log1p(np.maximum(0.0, df_shifted["amount"]))
+        raw_amt = df_shifted["amount_raw"].values * amount_scale
+        df_shifted["amount_raw"] = raw_amt
+    else:
+        raw_amt = df_shifted["amount"].values * amount_scale
+
+    if scaler_path.exists():
+        try:
+            scaler = joblib.load(scaler_path)
+            feature_names = list(getattr(scaler, "feature_names_in_", []))
+            if feature_names and "amount" in feature_names:
+                def get_raw(col_name):
+                    idx = feature_names.index(col_name)
+                    return df_shifted[col_name].values * scaler.scale_[idx] + scaler.mean_[idx]
+
+                raw_old_orig = get_raw("oldbalanceOrg")
+                raw_new_orig = get_raw("newbalanceOrig")
+                raw_old_dest = get_raw("oldbalanceDest")
+                raw_new_dest = get_raw("newbalanceDest")
+
+                raw_err_orig = raw_new_orig + raw_amt - raw_old_orig
+                raw_err_dest = raw_old_dest + raw_amt - raw_new_dest
+                raw_log_amt = np.log1p(np.maximum(0.0, raw_amt))
+                raw_ratio_orig = raw_amt / (raw_old_orig + 1.0)
+                raw_ratio_dest = raw_amt / (raw_old_dest + 1.0)
+
+                def set_scaled(col_name, raw_vec):
+                    idx = feature_names.index(col_name)
+                    df_shifted[col_name] = (raw_vec - scaler.mean_[idx]) / scaler.scale_[idx]
+
+                set_scaled("amount", raw_amt)
+                set_scaled("log_amount", raw_log_amt)
+                set_scaled("errorBalanceOrig", raw_err_orig)
+                set_scaled("errorBalanceDest", raw_err_dest)
+                set_scaled("amount_to_oldbalanceOrg_ratio", raw_ratio_orig)
+                set_scaled("amount_to_oldbalanceDest_ratio", raw_ratio_dest)
+                return df_shifted
+        except Exception:
+            pass
+
+    df_shifted["amount"] = df_shifted["amount"] * amount_scale
+    df_shifted["log_amount"] = np.log1p(np.maximum(0.0, df_shifted["amount"]))
     return df_shifted

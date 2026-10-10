@@ -80,16 +80,29 @@ def evaluate_variant(
     test_prob = clf.predict_proba(X_test)[:, 1]
 
     # Tune OWN validation thresholds
-    _, f2_opt, cost_opt = threshold_sweep(y_val, val_prob, amt_val, fp_cost=50.0, fn_multiplier=1.0)
+    val_sweep_df, f2_opt, cost_opt = threshold_sweep(y_val, val_prob, amt_val, fp_cost=50.0, fn_multiplier=1.0)
+
+    print(f"\n--- RAW VALIDATION SWEEP FOR VARIANT: {name} ---")
+    min_cost_idx = val_sweep_df["total_cost"].idxmin()
+    max_f2_idx = val_sweep_df["f2_score"].idxmax()
+    print(f"Validation Cost Sweep Min Row (idx={min_cost_idx}): threshold={val_sweep_df.loc[min_cost_idx, 'threshold']:.4f}, total_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'total_cost']:,.2f}, fn_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'fn_cost']:,.2f}, fp_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'fp_cost']:,.2f}")
+    print(f"Validation F2 Sweep Max Row (idx={max_f2_idx}): threshold={val_sweep_df.loc[max_f2_idx, 'threshold']:.4f}, f2_score={val_sweep_df.loc[max_f2_idx, 'f2_score']:.4f}, recall={val_sweep_df.loc[max_f2_idx, 'recall']:.4f}, precision={val_sweep_df.loc[max_f2_idx, 'precision']:.4f}")
+    print(f"Selected Thresholds: F2-Optimal = {f2_opt:.4f} | Cost-Optimal = {cost_opt:.4f}")
 
     # Clean Test set evaluation
     base_rate = float(np.mean(y_test))
     pr_auc = float(average_precision_score(y_test, test_prob))
     roc_auc = float(roc_auc_score(y_test, test_prob)) if len(np.unique(y_test)) > 1 else 0.5
-    flag_rate = float(np.mean(test_prob >= f2_opt))
+    flag_rate = float(np.mean(test_prob >= cost_opt))
 
     cost_res_f2 = expected_cost(y_test, test_prob, f2_opt, amt_test, fp_cost=50.0, fn_multiplier=1.0)
     cost_res_cost = expected_cost(y_test, test_prob, cost_opt, amt_test, fp_cost=50.0, fn_multiplier=1.0)
+
+    # Cost table integrity assertion on test evaluation
+    total_fraud_amt = float(np.sum(amt_test[y_test == 1]))
+    assert abs((cost_res_cost["amount_caught"] + cost_res_cost["amount_missed"]) - total_fraud_amt) < 0.01, f"Fraud caught + missed ({cost_res_cost['amount_caught'] + cost_res_cost['amount_missed']:.2f}) != total ({total_fraud_amt:.2f})"
+    calc_cost = cost_res_cost["amount_missed"] + 50.0 * cost_res_cost["fp"]
+    assert abs(cost_res_cost["total_cost"] - calc_cost) < 0.01, f"Cost ({cost_res_cost['total_cost']:.2f}) != missed + 50*FP ({calc_cost:.2f})"
 
     # 200 Bootstrap resamples for 95% CIs on CLEAN TEST split
     rng = np.random.RandomState(42)
@@ -104,17 +117,17 @@ def evaluate_variant(
         if len(np.unique(y_test[idx])) < 2:
             continue
         boot_pr.append(average_precision_score(y_test[idx], test_prob[idx]))
-        boot_cost.append(expected_cost(y_test[idx], test_prob[idx], f2_opt, amt_test[idx], fp_cost=50.0, fn_multiplier=1.0)["total_cost"])
+        boot_cost.append(expected_cost(y_test[idx], test_prob[idx], cost_opt, amt_test[idx], fp_cost=50.0, fn_multiplier=1.0)["total_cost"])
         
         ring_idx = idx[is_ring_mask[idx]]
         if len(ring_idx) > 0:
-            boot_ring.append(np.mean(test_prob[ring_idx] >= f2_opt))
+            boot_ring.append(np.mean(test_prob[ring_idx] >= cost_opt))
 
     pr_ci = (float(np.percentile(boot_pr, 2.5)), float(np.percentile(boot_pr, 97.5))) if boot_pr else (pr_auc, pr_auc)
-    cost_ci = (float(np.percentile(boot_cost, 2.5)), float(np.percentile(boot_cost, 97.5))) if boot_cost else (cost_res_f2["total_cost"], cost_res_f2["total_cost"])
+    cost_ci = (float(np.percentile(boot_cost, 2.5)), float(np.percentile(boot_cost, 97.5))) if boot_cost else (cost_res_cost["total_cost"], cost_res_cost["total_cost"])
 
     if n_ring > 0:
-        ring_preds = (test_prob[is_ring_mask] >= f2_opt).astype(int)
+        ring_preds = (test_prob[is_ring_mask] >= cost_opt).astype(int)
         ring_recall = float(np.mean(ring_preds))
         ring_ci = (float(np.percentile(boot_ring, 2.5)), float(np.percentile(boot_ring, 97.5))) if boot_ring else (ring_recall, ring_recall)
     else:
@@ -131,17 +144,21 @@ def evaluate_variant(
         "pr_ci": pr_ci,
         "roc_auc": roc_auc,
         "flag_rate": flag_rate,
-        "precision_f2": cost_res_f2["precision"],
-        "recall_f2": cost_res_f2["recall"],
+        "precision": cost_res_cost["precision"],
+        "recall": cost_res_cost["recall"],
+        "tp": cost_res_cost["tp"],
+        "fp": cost_res_cost["fp"],
+        "fn": cost_res_cost["fn"],
+        "tn": cost_res_cost["tn"],
         "n_ring": n_ring,
         "ring_recall": ring_recall,
         "ring_ci": ring_ci,
-        "f2_score": cost_res_f2["f2_score"],
+        "f2_score": cost_res_cost["f2_score"],
         "total_cost_f2": cost_res_f2["total_cost"],
         "cost_ci": cost_ci,
-        "amt_caught": cost_res_f2["amount_caught"],
-        "amt_missed": cost_res_f2["amount_missed"],
-        "pct_caught": cost_res_f2["pct_amount_caught"],
+        "amt_caught": cost_res_cost["amount_caught"],
+        "amt_missed": cost_res_cost["amount_missed"],
+        "pct_caught": cost_res_cost["pct_amount_caught"],
         "total_cost_cost_opt": cost_res_cost["total_cost"],
         "clf": clf,
         "test_prob": test_prob,
@@ -159,8 +176,9 @@ def train_and_evaluate():
     feature_cols = [c for c in train_df.columns if c not in ignore_cols and pd.api.types.is_numeric_dtype(train_df[c])]
     assert len(feature_cols) == 33, f"Expected 33 feature columns, got {len(feature_cols)}"
 
-    amt_val = val_df["amount_raw"].values if "amount_raw" in val_df.columns else unscale_column(val_df, "amount", scaler)
-    amt_test = test_df["amount_raw"].values if "amount_raw" in test_df.columns else unscale_column(test_df, "amount", scaler)
+    from src.cost_sensitive_eval import get_unscaled_amounts
+    amt_val = get_unscaled_amounts(val_df, scaler)
+    amt_test = get_unscaled_amounts(test_df, scaler)
 
     y_train = train_df["isFraud"].values
     y_val = val_df["isFraud"].values
@@ -203,19 +221,20 @@ def train_and_evaluate():
         res = evaluate_variant(name, cols, train_df, val_df, test_df, amt_val, amt_test, scale_pos_weight)
         results.append(res)
         ring_str = f"{res['ring_recall']*100:.1f}% (CI: {res['ring_ci'][0]*100:.1f}..{res['ring_ci'][1]*100:.1f}%, n={res['n_ring']})" if res['ring_recall'] is not None else "N/A"
-        print(f"[{name:<28}] PR-AUC: {res['pr_auc']:.4f} (Base Rate: {res['base_rate']:.4f}, CI: {res['pr_ci'][0]:.4f}..{res['pr_ci'][1]:.4f}) | ROC-AUC: {res['roc_auc']:.4f} | T_F2: {res['f2_opt_thresh']:.4f} | Overall Recall: {res['recall_f2']*100:.1f}% | Flag Rate: {res['flag_rate']*100:.1f}% | Ring-Fraud Recall: {ring_str} | Cost: Rs. {res['total_cost_f2']:,.2f}")
+        print(f"[{name:<28}] PR-AUC: {res['pr_auc']:.4f} (Base Rate: {res['base_rate']:.4f}) | ROC-AUC: {res['roc_auc']:.4f} | T_F2: {res['f2_opt_thresh']:.4f} | T_COST: {res['cost_opt_thresh']:.4f} | Recall: {res['recall']*100:.1f}% | Flag Rate: {res['flag_rate']*100:.1f}% | Ring Recall: {ring_str} | Cost (Cost-Opt): Rs. {res['total_cost_cost_opt']:,.2f}")
 
     # Calculate Baselines for Cost Table
     no_model_cost = float(np.sum(amt_test[y_test == 1]))  # Flag Nothing: FN = all fraud amounts
     flag_everything_cost = float(50.0 * np.sum(y_test == 0)) # Flag Everything: FP = all non-fraud * 50.0
 
-    print("\n=== BASELINE COSTS ===")
-    print(f"  - No Model (Flag Nothing) : Rs. {no_model_cost:,.2f}")
-    print(f"  - Flag Everything Baseline : Rs. {flag_everything_cost:,.2f}")
+    print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
+    print(f"{'Variant':<28} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE?':<10}")
+    print("-" * 135)
     for r in results:
-        beats_nothing = r["total_cost_f2"] < no_model_cost
-        beats_everything = r["total_cost_f2"] < flag_everything_cost
-        print(f"  - {r['name']:<28}: Cost = Rs. {r['total_cost_f2']:>12,.2f} | Beats Flag Nothing? {beats_nothing} | Beats Flag Everything? {beats_everything}")
+        b_fn = "YES" if r["total_cost_cost_opt"] < no_model_cost else "NO"
+        b_fe = "YES" if r["total_cost_cost_opt"] < flag_everything_cost else "NO"
+        print(f"{r['name']:<28} | {r['tp']:<5} | {r['fp']:<5} | {r['fn']:<5} | {r['tn']:<6} | Rs. {r['amt_caught']:<10,.2f} | Rs. {r['amt_missed']:<10,.2f} | Rs. {r['total_cost_cost_opt']:<10,.2f} | {b_fn:<10} | {b_fe:<10}")
+    print("-" * 135)
 
     # Primary deployed model is Tabular + Graph
     deployed = results[-1]
@@ -224,17 +243,25 @@ def train_and_evaluate():
 
     metadata = {
         "feature_names": feature_cols,
-        "f2_optimal_threshold": deployed["f2_opt_thresh"],
-        "cost_optimal_threshold": deployed["cost_opt_thresh"],
-        "active_threshold": deployed["cost_opt_thresh"],
+        "f2_optimal_threshold": float(deployed["f2_opt_thresh"]),
+        "cost_optimal_threshold": float(deployed["cost_opt_thresh"]),
+        "active_threshold": float(deployed["cost_opt_thresh"]),
         "active_strategy": "cost_optimal",
-        "model_expected_cost_rs": deployed["total_cost_cost_opt"],
-        "baseline_flag_nothing_cost_rs": no_model_cost,
-        "baseline_flag_everything_cost_rs": flag_everything_cost,
-        "cost_savings_vs_flag_nothing_rs": no_model_cost - deployed["total_cost_cost_opt"],
-        "cost_savings_vs_flag_everything_rs": flag_everything_cost - deployed["total_cost_cost_opt"],
+        "model_expected_cost_rs": float(deployed["total_cost_cost_opt"]),
+        "baseline_flag_nothing_cost_rs": float(no_model_cost),
+        "baseline_flag_everything_cost_rs": float(flag_everything_cost),
+        "cost_savings_vs_flag_nothing_rs": float(no_model_cost - deployed["total_cost_cost_opt"]),
+        "cost_savings_vs_flag_everything_rs": float(flag_everything_cost - deployed["total_cost_cost_opt"]),
     }
     joblib.dump(metadata, METADATA_PATH)
+
+    print("\n=== SAVED MODEL METADATA CONTENTS ===")
+    for k, v in metadata.items():
+        if isinstance(v, float):
+            print(f"  {k}: {v:.6f}")
+        else:
+            print(f"  {k}: {v}")
+    print("======================================\n")
 
     # Build Ablation Markdown Report
     ablation_md = f"""# Full Feature Group Ablation & Impact Analysis (Clean Test Split)
@@ -250,9 +277,9 @@ Baseline Costs:
 | **Flag Everything** | 0 | {base_rate_test:.4f} | 0.0000 | {base_rate_test:.4f} | 0.5000 | 100.00% | 100.00% | 100.00% | Rs. {flag_everything_cost:,.2f} | N/A |
 """
     for r in results:
-        beats = (r["total_cost_f2"] < no_model_cost) and (r["total_cost_f2"] < flag_everything_cost)
+        beats = (r["total_cost_cost_opt"] < no_model_cost) and (r["total_cost_cost_opt"] < flag_everything_cost)
         ring_str = f"{r['ring_recall']*100:.2f}% ({r['ring_ci'][0]*100:.1f}%..{r['ring_ci'][1]*100:.1f}%)" if r['ring_recall'] is not None else "N/A"
-        ablation_md += f"| **{r['name']}** | {r['n_cols']} | {r['base_rate']:.4f} | {r['f2_opt_thresh']:.4f} | {r['pr_auc']:.4f} ({r['pr_ci'][0]:.4f}..{r['pr_ci'][1]:.4f}) | {r['roc_auc']:.4f} | {r['recall_f2']*100:.2f}% | {r['flag_rate']*100:.2f}% | {ring_str} | Rs. {r['total_cost_f2']:,.2f} | {'YES' if beats else 'NO'} |\n"
+        ablation_md += f"| **{r['name']}** | {r['n_cols']} | {r['base_rate']:.4f} | {r['f2_opt_thresh']:.4f} | {r['pr_auc']:.4f} ({r['pr_ci'][0]:.4f}..{r['pr_ci'][1]:.4f}) | {r['roc_auc']:.4f} | {r['recall']*100:.2f}% | {r['flag_rate']*100:.2f}% | {ring_str} | Rs. {r['total_cost_cost_opt']:,.2f} | {'YES' if beats else 'NO'} |\n"
 
     ABLATION_PATH.parent.mkdir(parents=True, exist_ok=True)
     ABLATION_PATH.write_text(ablation_md, encoding="utf-8")
