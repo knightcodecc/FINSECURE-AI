@@ -120,12 +120,17 @@ def threshold_sweep(
     amounts: np.ndarray,
     fp_cost: float = 50.0,
     fn_multiplier: float = 1.0,
-    n_steps: int = 100,
+    n_steps: int = 200,
 ) -> Tuple[pd.DataFrame, float, float]:
     """
     Sweep decision thresholds on validation set to find F2-optimal and cost-optimal thresholds.
+    Uses a fine wide grid combining log-spaced thresholds down to 1e-4 and score quantiles.
     """
-    thresholds = np.linspace(0.01, 0.99, n_steps)
+    grid_log = np.logspace(-4, -0.0001, 150)
+    grid_lin = np.linspace(0.0001, 0.9999, 150)
+    grid_q = np.quantile(y_pred_proba, np.linspace(0.001, 0.999, 100)) if len(y_pred_proba) > 0 else np.array([])
+    thresholds = np.unique(np.sort(np.clip(np.concatenate([grid_log, grid_lin, grid_q]), 1e-4, 0.9999)))
+
     results = []
 
     for thresh in thresholds:

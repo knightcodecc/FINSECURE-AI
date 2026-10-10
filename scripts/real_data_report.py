@@ -139,8 +139,10 @@ def main():
     eval_results = {}
 
     print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
-    print(f"{'Variant':<28} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE?':<10}")
-    print("-" * 135)
+    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Precision':<9} | {'Recall':<7} | {'Alert Rate':<10} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
+    print("-" * 175)
+
+    models_dict = {}
 
     for v_name, v_cols in variants:
         if not v_cols:
@@ -162,12 +164,17 @@ def main():
             early_stopping_rounds=30,
         )
         model.fit(X_tr, y_tr, eval_set=[(X_va, y_val)], verbose=False)
+        models_dict[v_name] = model
 
         p_va = model.predict_proba(X_va)[:, 1]
         p_te = model.predict_proba(X_te)[:, 1]
 
         from src.cost_sensitive_eval import threshold_sweep
         _, f2_opt, cost_opt = threshold_sweep(y_val, p_va, amounts_val)
+
+        f2_edge = (f2_opt <= 1e-4) or (f2_opt >= 0.9999)
+        cost_edge = (cost_opt <= 1e-4) or (cost_opt >= 0.9999)
+        edge_str = f"F2 Edge: {'YES' if f2_edge else 'NO'} | Cost Edge: {'YES' if cost_edge else 'NO'}"
 
         pr_auc = average_precision_score(y_test, p_te)
         roc_auc = roc_auc_score(y_test, p_te)
@@ -204,26 +211,69 @@ def main():
         if abs(tot_cost - expected_cost_calc) >= 0.01:
             raise RuntimeError(f"Row Integrity Break: Cost ({tot_cost:.2f}) != Missed ({missed:.2f}) + 50*FP ({expected_cost_calc:.2f})")
 
+        alert_rate = (cost_res["tp"] + cost_res["fp"]) / len(y_test) * 100.0
         beats_fn = tot_cost < cost_flag_nothing
-        beats_fe = tot_cost < cost_flag_everything
+        beats_fe = tot_cost < (cost_flag_everything * 0.95)
 
         eval_results[v_name] = {
             "pr_auc": pr_auc,
             "pr_ci": pr_ci,
             "roc_auc": roc_auc,
             "t_cost": cost_opt,
+            "t_f2": f2_opt,
+            "f2_edge": f2_edge,
+            "cost_edge": cost_edge,
             "cost": tot_cost,
             "cost_ci": cost_ci,
             "ring_rec": ring_rec,
             "beats_fn": beats_fn,
             "beats_fe": beats_fe,
+            "alert_rate": alert_rate,
+            "precision": cost_res["precision"],
+            "recall": cost_res["recall"],
         }
 
+        v_label = v_name + (" (Effectively Flag-Everything)" if alert_rate > 90.0 else "")
         b_fn_str = "YES" if beats_fn else "NO"
         b_fe_str = "YES" if beats_fe else "NO"
-        print(f"{v_name:<28} | {cost_res['tp']:<5} | {cost_res['fp']:<5} | {cost_res['fn']:<5} | {cost_res['tn']:<6} | Rs. {caught:<10,.2f} | Rs. {missed:<10,.2f} | Rs. {tot_cost:<10,.2f} | {b_fn_str:<10} | {b_fe_str:<10}")
+        print(f"{v_label:<35} | {cost_res['tp']:<5} | {cost_res['fp']:<5} | {cost_res['fn']:<5} | {cost_res['tn']:<6} | {cost_res['precision']*100:>8.2f}% | {cost_res['recall']*100:>6.2f}% | {alert_rate:>9.2f}% | Rs. {caught:<10,.2f} | Rs. {missed:<10,.2f} | Rs. {tot_cost:<10,.2f} | {b_fn_str:<10} | {b_fe_str:<15}")
 
+    print("-" * 175)
+
+    print("\n=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===")
+    print(f"{'FP Review Cost (Rs.)':<20} | {'Variant':<28} | {'T_COST':<8} | {'Alert Rate':<10} | {'Recall':<7} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
     print("-" * 135)
+    for fp_c in [50.0, 500.0, 2000.0, 5000.0]:
+        fe_cost_fp = float(fp_c * np.sum(y_test == 0))
+        for v_name, v_cols in variants:
+            if not v_cols:
+                continue
+            m = models_dict[v_name]
+            p_va = m.predict_proba(val_df[v_cols])[:, 1]
+            p_te = m.predict_proba(test_df[v_cols])[:, 1]
+            _, _, c_opt = threshold_sweep(y_val, p_va, amounts_val, fp_cost=fp_c)
+            eval_c = expected_cost(y_test, p_te, c_opt, amounts_test, fp_cost=fp_c)
+            ar = (eval_c['tp'] + eval_c['fp']) / len(y_test) * 100.0
+            b_fn = "YES" if eval_c['total_cost'] < cost_flag_nothing else "NO"
+            b_fe = "YES" if eval_c['total_cost'] < (fe_cost_fp * 0.95) else "NO"
+            print(f"Rs. {fp_c:<16,.0f} | {v_name:<28} | {c_opt:<8.4f} | {ar:>9.2f}% | {eval_c['recall']*100:>6.2f}% | Rs. {eval_c['total_cost']:<10,.2f} | {b_fn:<10} | {b_fe:<15}")
+    print("-" * 135)
+
+    print("\n=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===")
+    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<15} | {'Recall':<8} | {'Amount Caught (Rs.)':<18}")
+    print("-" * 105)
+    for b_pct in [0.01, 0.02, 0.05]:
+        for v_name, v_cols in variants:
+            if not v_cols:
+                continue
+            m = models_dict[v_name]
+            p_va = m.predict_proba(val_df[v_cols])[:, 1]
+            p_te = m.predict_proba(test_df[v_cols])[:, 1]
+            t_budget = float(np.quantile(p_va, 1.0 - b_pct)) if len(p_va) > 0 else 0.5
+            eval_b = expected_cost(y_test, p_te, t_budget, amounts_test)
+            ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
+            print(f"{b_pct*100:<14.1f}% | {v_name:<28} | {t_budget:<9.4f} | {ar:>14.2f}% | {eval_b['recall']*100:>7.2f}% | Rs. {eval_b['amount_caught']:<15,.2f}")
+    print("-" * 105)
 
     # 4. Fraud Exposure coverage across ALL rows and per split
     print("\n=== 4. FRAUD EXPOSURE COVERAGE ANALYSIS ACROSS ALL ROWS & FRAUD ROWS ===")
@@ -240,8 +290,7 @@ def main():
     exp_mask = (fraud_test_df["orig_fraud_exposure"] > 0) | (fraud_test_df["dest_fraud_exposure"] > 0)
     n_exp = int(exp_mask.sum())
     pct_exp = (n_exp / max(n_fraud_tot, 1)) * 100
-    print(f"Clean Test FRAUD Rows with dest_fraud_exposure > 0: {n_exp} / {n_fraud_tot} ({pct_exp:.2f}%)")
-    print("Note: orig_fraud_exposure evaluates to 0.0 for all origin accounts in PaySim because origin accounts (C*) act strictly as payment senders and do not receive inbound funds from earlier frauds.")
+    print(f"Clean Test FRAUD Rows with orig_ or dest_fraud_exposure > 0: {n_exp} / {n_fraud_tot} ({pct_exp:.2f}%)")
 
     # 5. Honest Computed Conclusion
     print("\n=== 5. DYNAMICALLY COMPUTED HONEST CONCLUSION ===")

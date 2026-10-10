@@ -220,21 +220,57 @@ def train_and_evaluate():
     for name, cols in variants:
         res = evaluate_variant(name, cols, train_df, val_df, test_df, amt_val, amt_test, scale_pos_weight)
         results.append(res)
+        f2_edge = (res['f2_opt_thresh'] <= 1e-4) or (res['f2_opt_thresh'] >= 0.9999)
+        cost_edge = (res['cost_opt_thresh'] <= 1e-4) or (res['cost_opt_thresh'] >= 0.9999)
+        edge_str = f"F2 Edge: {'YES' if f2_edge else 'NO'} | Cost Edge: {'YES' if cost_edge else 'NO'}"
         ring_str = f"{res['ring_recall']*100:.1f}% (CI: {res['ring_ci'][0]*100:.1f}..{res['ring_ci'][1]*100:.1f}%, n={res['n_ring']})" if res['ring_recall'] is not None else "N/A"
-        print(f"[{name:<28}] PR-AUC: {res['pr_auc']:.4f} (Base Rate: {res['base_rate']:.4f}) | ROC-AUC: {res['roc_auc']:.4f} | T_F2: {res['f2_opt_thresh']:.4f} | T_COST: {res['cost_opt_thresh']:.4f} | Recall: {res['recall']*100:.1f}% | Flag Rate: {res['flag_rate']*100:.1f}% | Ring Recall: {ring_str} | Cost (Cost-Opt): Rs. {res['total_cost_cost_opt']:,.2f}")
+        print(f"[{name:<28}] PR-AUC: {res['pr_auc']:.4f} (Base Rate: {res['base_rate']:.4f}) | ROC-AUC: {res['roc_auc']:.4f} | T_F2: {res['f2_opt_thresh']:.4f} | T_COST: {res['cost_opt_thresh']:.4f} ({edge_str}) | Recall: {res['recall']*100:.1f}% | Flag Rate: {res['flag_rate']*100:.1f}% | Ring Recall: {ring_str} | Cost (Cost-Opt): Rs. {res['total_cost_cost_opt']:,.2f}")
 
     # Calculate Baselines for Cost Table
     no_model_cost = float(np.sum(amt_test[y_test == 1]))  # Flag Nothing: FN = all fraud amounts
     flag_everything_cost = float(50.0 * np.sum(y_test == 0)) # Flag Everything: FP = all non-fraud * 50.0
 
     print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
-    print(f"{'Variant':<28} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE?':<10}")
-    print("-" * 135)
+    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Precision':<9} | {'Recall':<7} | {'Alert Rate':<10} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
+    print("-" * 175)
     for r in results:
+        alert_rate = (r["tp"] + r["fp"]) / len(y_test) * 100.0
+        variant_label = r['name'] + (" (Effectively Flag-Everything)" if alert_rate > 90.0 else "")
         b_fn = "YES" if r["total_cost_cost_opt"] < no_model_cost else "NO"
-        b_fe = "YES" if r["total_cost_cost_opt"] < flag_everything_cost else "NO"
-        print(f"{r['name']:<28} | {r['tp']:<5} | {r['fp']:<5} | {r['fn']:<5} | {r['tn']:<6} | Rs. {r['amt_caught']:<10,.2f} | Rs. {r['amt_missed']:<10,.2f} | Rs. {r['total_cost_cost_opt']:<10,.2f} | {b_fn:<10} | {b_fe:<10}")
+        b_fe = "YES" if r["total_cost_cost_opt"] < (flag_everything_cost * 0.95) else "NO"
+        print(f"{variant_label:<35} | {r['tp']:<5} | {r['fp']:<5} | {r['fn']:<5} | {r['tn']:<6} | {r['precision']*100:>8.2f}% | {r['recall']*100:>6.2f}% | {alert_rate:>9.2f}% | Rs. {r['amt_caught']:<10,.2f} | Rs. {r['amt_missed']:<10,.2f} | Rs. {r['total_cost_cost_opt']:<10,.2f} | {b_fn:<10} | {b_fe:<15}")
+    print("-" * 175)
+
+    print("\n=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===")
+    print(f"{'FP Review Cost (Rs.)':<20} | {'Variant':<28} | {'T_COST':<8} | {'Alert Rate':<10} | {'Recall':<7} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
     print("-" * 135)
+    for fp_c in [50.0, 500.0, 2000.0, 5000.0]:
+        fe_cost_fp = float(fp_c * np.sum(y_test == 0))
+        for name, cols in variants:
+            clf = results[[r['name'] for r in results].index(name)]['clf']
+            val_prob = clf.predict_proba(val_df[cols])[:, 1]
+            test_prob = clf.predict_proba(test_df[cols])[:, 1]
+            _, _, c_opt = threshold_sweep(y_val, val_prob, amt_val, fp_cost=fp_c)
+            eval_c = expected_cost(y_test, test_prob, c_opt, amt_test, fp_cost=fp_c)
+            ar = (eval_c['tp'] + eval_c['fp']) / len(y_test) * 100.0
+            b_fn = "YES" if eval_c['total_cost'] < no_model_cost else "NO"
+            b_fe = "YES" if eval_c['total_cost'] < (fe_cost_fp * 0.95) else "NO"
+            print(f"Rs. {fp_c:<16,.0f} | {name:<28} | {c_opt:<8.4f} | {ar:>9.2f}% | {eval_c['recall']*100:>6.2f}% | Rs. {eval_c['total_cost']:<10,.2f} | {b_fn:<10} | {b_fe:<15}")
+    print("-" * 135)
+
+    print("\n=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===")
+    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<15} | {'Recall':<8} | {'Amount Caught (Rs.)':<18}")
+    print("-" * 105)
+    for b_pct in [0.01, 0.02, 0.05]:
+        for name, cols in variants:
+            clf = results[[r['name'] for r in results].index(name)]['clf']
+            val_prob = clf.predict_proba(val_df[cols])[:, 1]
+            test_prob = clf.predict_proba(test_df[cols])[:, 1]
+            t_budget = float(np.quantile(val_prob, 1.0 - b_pct)) if len(val_prob) > 0 else 0.5
+            eval_b = expected_cost(y_test, test_prob, t_budget, amt_test)
+            ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
+            print(f"{b_pct*100:<14.1f}% | {name:<28} | {t_budget:<9.4f} | {ar:>14.2f}% | {eval_b['recall']*100:>7.2f}% | Rs. {eval_b['amount_caught']:<15,.2f}")
+    print("-" * 105)
 
     # Primary deployed model is Tabular + Graph
     deployed = results[-1]

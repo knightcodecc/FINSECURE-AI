@@ -16,8 +16,13 @@ from src.explain.shap_explainer import (
 )
 
 
+from pathlib import Path
+
+
 @pytest.fixture
 def explainer():
+    if not Path("models/xgboost_model.joblib").exists():
+        pytest.skip("Model file missing")
     return ShapExplainer()
 
 
@@ -27,9 +32,15 @@ def test_shap_additivity_property_margin_space(explainer):
     |base_value + sum(shap) - model.predict(output_margin=True)| < 1e-4
     evaluated over at least 200 rows including all available fraud rows.
     """
-    train_df = pd.read_parquet("data/features_train.parquet")
-    val_df = pd.read_parquet("data/features_val.parquet")
-    test_df = pd.read_parquet("data/features_test.parquet")
+    train_path = Path("data/features_train.parquet")
+    val_path = Path("data/features_val.parquet")
+    test_path = Path("data/features_test.parquet")
+    if not (train_path.exists() and val_path.exists() and test_path.exists()):
+        pytest.skip("Feature parquet files missing")
+
+    train_df = pd.read_parquet(train_path)
+    val_df = pd.read_parquet(val_path)
+    test_df = pd.read_parquet(test_path)
 
     full_df = pd.concat([train_df, val_df, test_df], ignore_index=True)
     ignore_cols = {"isFraud", "step", "mechanism", "amount_raw"}

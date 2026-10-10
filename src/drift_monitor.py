@@ -40,6 +40,7 @@ def compute_psi(
 ) -> float:
     """
     Compute Population Stability Index (PSI) between reference and current distributions.
+    Handles zero-inflated features by placing exact zeros in a dedicated bin and quantile binning non-zero values.
     """
     reference = np.asarray(reference, dtype=float)
     current = np.asarray(current, dtype=float)
@@ -55,13 +56,37 @@ def compute_psi(
         curr_pct = curr_counts / len(current)
     else:
         unique_ref = np.unique(reference)
-        if len(unique_ref) <= 5:
+        if len(unique_ref) <= 10:
             all_vals = np.unique(np.concatenate([reference, current]))
             ref_pcts = [np.mean(reference == val) for val in all_vals]
             curr_pcts = [np.mean(current == val) for val in all_vals]
 
             ref_pct = np.array(ref_pcts)
             curr_pct = np.array(curr_pcts)
+        elif 0.0 in reference and np.mean(reference == 0.0) >= 0.05:
+            ref_zero_pct = np.mean(reference == 0.0)
+            curr_zero_pct = np.mean(current == 0.0)
+
+            ref_nz = reference[reference != 0.0]
+            curr_nz = current[current != 0.0]
+
+            if len(ref_nz) > 0 and len(curr_nz) > 0:
+                q_edges = np.unique(np.percentile(ref_nz, np.linspace(0, 100, bins + 1)))
+                if len(q_edges) >= 2:
+                    ref_nz_counts, _ = np.histogram(ref_nz, bins=q_edges)
+                    curr_nz_counts, _ = np.histogram(curr_nz, bins=q_edges)
+
+                    ref_nz_pcts = ref_nz_counts / len(reference)
+                    curr_nz_pcts = curr_nz_counts / len(current)
+
+                    ref_pct = np.array([ref_zero_pct] + list(ref_nz_pcts))
+                    curr_pct = np.array([curr_zero_pct] + list(curr_nz_pcts))
+                else:
+                    ref_pct = np.array([ref_zero_pct, len(ref_nz) / len(reference)])
+                    curr_pct = np.array([curr_zero_pct, len(curr_nz) / len(current)])
+            else:
+                ref_pct = np.array([ref_zero_pct, len(ref_nz) / len(reference)])
+                curr_pct = np.array([curr_zero_pct, len(curr_nz) / len(current)])
         else:
             percentiles = np.linspace(0, 100, bins + 1)
             bin_edges = np.percentile(reference, percentiles)

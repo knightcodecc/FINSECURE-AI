@@ -19,8 +19,12 @@ from api.db import get_db_connection, log_prediction, log_predictions_batch, DB_
 from src.feature_engineering import engineer_tabular_features
 
 
+from pathlib import Path
+
 def test_serving_features_equal_training_features():
     """Verify that serving feature generation is identical to training feature engineering (Amendment 4)."""
+    if not Path("models/xgboost_model.joblib").exists():
+        pytest.skip("models/xgboost_model.joblib missing")
     predictor = get_predictor()
 
     raw_tx = {
@@ -120,6 +124,8 @@ def test_get_metrics_cost_endpoint():
     from fastapi.testclient import TestClient
     from api.main import app
 
+    if not Path("models/model_metadata.joblib").exists():
+        pytest.skip("models/model_metadata.joblib missing")
     client = TestClient(app)
     response = client.get("/metrics/cost")
     assert response.status_code == 200
@@ -133,6 +139,9 @@ def test_drift_endpoints_fastapi():
     """Verify GET /drift/status and POST /drift/simulate via FastAPI TestClient."""
     from fastapi.testclient import TestClient
     from api.main import app
+
+    if not (Path("data/features_train.parquet").exists() and Path("data/features_val.parquet").exists()):
+        pytest.skip("Training/Val feature data missing")
 
     client = TestClient(app)
 

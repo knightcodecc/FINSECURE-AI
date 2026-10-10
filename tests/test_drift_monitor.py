@@ -5,6 +5,7 @@ Unit tests for concept drift monitoring (PSI, KS test, retrain recommendation, d
 and 4-window disjoint drift detection.
 """
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
@@ -18,8 +19,19 @@ def test_compute_psi_identical_distributions():
     assert psi < 0.10, f"Expected stable PSI < 0.10 for identical distributions, got {psi:.4f}"
 
 
+def test_zero_inflated_column_psi_positive():
+    """Verify that a 98% zero-inflated column whose non-zero share increases from 2% to 4% yields PSI > 0."""
+    ref = np.array([0.0] * 980 + [0.5, 0.8] * 10)
+    curr = np.array([0.0] * 960 + [0.5, 0.8] * 20)
+    psi = compute_psi(ref, curr)
+    assert psi > 0.0, f"Expected PSI > 0 for zero-inflated column shift, got {psi}"
+
+
 def test_drift_monitor_clean_versus_shifted():
-    train_df = pd.read_parquet("data/features_train.parquet")
+    train_path = Path("data/features_train.parquet")
+    if not train_path.exists():
+        pytest.skip("data/features_train.parquet missing")
+    train_df = pd.read_parquet(train_path)
     ignore_cols = {"isFraud", "step", "mechanism"}
     feature_cols = [c for c in train_df.columns if c not in ignore_cols and pd.api.types.is_numeric_dtype(train_df[c])]
 
@@ -37,9 +49,15 @@ def test_drift_monitor_clean_versus_shifted():
 
 
 def test_disjoint_windows_drift_behavior():
-    train_df = pd.read_parquet("data/features_train.parquet")
-    test_df = pd.read_parquet("data/features_test.parquet")
-    shift_df = pd.read_parquet("data/features_shift.parquet")
+    train_path = Path("data/features_train.parquet")
+    test_path = Path("data/features_test.parquet")
+    shift_path = Path("data/features_shift.parquet")
+    if not (train_path.exists() and test_path.exists() and shift_path.exists()):
+        pytest.skip("Feature split data files missing")
+
+    train_df = pd.read_parquet(train_path)
+    test_df = pd.read_parquet(test_path)
+    shift_df = pd.read_parquet(shift_path)
 
     monitor = DriftMonitor(train_df)
 
