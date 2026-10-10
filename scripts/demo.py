@@ -104,7 +104,7 @@ def run_demo():
     scaler = joblib.load(SCALER_PATH)
     test_df = pd.read_parquet(TEST_FEATURES_PATH)
     
-    thresh = metadata.get("f2_optimal_threshold", 0.3466)
+    thresh = float(metadata.get("active_threshold", metadata.get("cost_optimal_threshold", 0.017033)))
     predictor.active_threshold = thresh
 
     checks_passed = []
@@ -121,7 +121,7 @@ def run_demo():
     # Selection Rule B: Legitimate Cleared (Clean test row index 0)
     idx_b = 0
     
-    # Selection Rule C: Borderline (Row in clean test whose probability is closest to validation-tuned threshold 0.3466)
+    # Selection Rule C: Borderline (Row in clean test whose probability is closest to active threshold)
     idx_c = int(np.argmin(np.abs(test_probs - thresh)))
 
     # -------------------------------------------------------------------------
@@ -148,7 +148,7 @@ def run_demo():
     print(f"Selection Rule: First Clean-Test row matching mechanism=='MECH_B_RING' (Row ID: {idx_a})")
     print(f"True Label: {int(row_a['isFraud'])} (Fraud)")
     print(f"Decision: {'FLAGGED FRAUD' if res_a['is_fraud'] else 'CLEARED LEGITIMATE'}")
-    print(f"Model Score (Probability): {res_a['prediction_proba']:.4f} (Validation Threshold: {thresh:.4f})")
+    print(f"Model Score (Probability): {res_a['prediction_proba']:.4f} (Active Threshold: {thresh:.4f})")
     print("Top 5 SHAP Features:")
     for f in res_a['shap_top_features']:
         print(f"  - {f['human_name']} ({f['feature']}): unscaled raw={f['raw_value']:.2f}, SHAP={f['shap_value']:+.4f} ({f['direction']})")
@@ -177,14 +177,14 @@ def run_demo():
     print(f"Selection Rule: Clean-Test row index 0 (Standard Legitimate PAYMENT)")
     print(f"True Label: {int(row_b['isFraud'])} (Legitimate)")
     print(f"Decision: {'FLAGGED FRAUD' if res_b['is_fraud'] else 'CLEARED LEGITIMATE'}")
-    print(f"Model Score (Probability): {res_b['prediction_proba']:.4f} (Validation Threshold: {thresh:.4f})")
+    print(f"Model Score (Probability): {res_b['prediction_proba']:.4f} (Active Threshold: {thresh:.4f})")
     print(f"Grounded Explanation: {res_b['explanation']}")
 
     pass_b = res_b['is_fraud'] is False
     checks_passed.append(("Scenario B (Legitimate Cleared)", pass_b))
 
     # -------------------------------------------------------------------------
-    # SCENARIO C: Borderline Case (Clean Test Row ID 7723)
+    # SCENARIO C: Borderline Case
     # -------------------------------------------------------------------------
     print(f"\n--- SCENARIO C: Borderline Case (Clean Test Row ID {idx_c}) ---")
     row_c = test_df.loc[idx_c]
@@ -200,10 +200,10 @@ def run_demo():
         "newbalanceDest": float(row_c["newbalanceDest"]),
     }
     res_c = predictor.predict_one(tx_c)
-    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability to validation threshold {thresh:.4f})")
+    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold {thresh:.4f})")
     print(f"True Label: {int(row_c['isFraud'])} ({'Fraud' if row_c['isFraud']==1 else 'Legitimate'})")
     print(f"Decision: {'FLAGGED FRAUD' if res_c['is_fraud'] else 'BORDERLINE CLEARED'}")
-    print(f"Model Score (Probability): {res_c['prediction_proba']:.4f} (Validation Threshold: {thresh:.4f})")
+    print(f"Model Score (Probability): {res_c['prediction_proba']:.4f} (Active Threshold: {thresh:.4f})")
     
     pass_c = res_c['prediction_proba'] is not None and isinstance(res_c['is_fraud'], bool)
     checks_passed.append(("Scenario C (Borderline Case Handled)", pass_c))
@@ -224,9 +224,8 @@ def run_demo():
     # -------------------------------------------------------------------------
     print("\n--- SCENARIO D: Triggering Concept Drift Simulation ---")
     train_df = pd.read_parquet("data/features_train.parquet")
-    val_df = pd.read_parquet("data/features_val.parquet")
 
-    shifted_df = simulate_drift(val_df[feature_cols], amount_scale=5.0)
+    shifted_df = simulate_drift(test_df[feature_cols], amount_scale=5.0)
     monitor = DriftMonitor(train_df)
     drift_res = monitor.check(shifted_df)
 

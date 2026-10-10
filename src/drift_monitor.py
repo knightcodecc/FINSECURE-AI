@@ -26,8 +26,8 @@ DRIFT_PSI_WARNING = 0.25
 # Cumulative graph counts & calendar features excluded from retraining triggers to avoid false positives
 EXCLUDED_PSI_COLS = {
     "step", "hour_of_day", "day_of_week", "high_risk_hour",
-    "orig_in_degree", "orig_out_degree", "orig_pagerank", "orig_component_size",
-    "dest_in_degree", "dest_out_degree", "dest_pagerank", "dest_component_size"
+    "orig_in_degree", "orig_out_degree", "orig_pagerank", "orig_component_size", "orig_fraud_exposure",
+    "dest_in_degree", "dest_out_degree", "dest_pagerank", "dest_component_size", "dest_fraud_exposure"
 }
 
 
@@ -56,19 +56,23 @@ def compute_psi(
         curr_pct = curr_counts / len(current)
     else:
         unique_ref = np.unique(reference)
+        min_val = np.min(reference)
+        ref_min_mask = np.isclose(reference, min_val, atol=1e-6) | (reference == 0.0)
+        ref_min_pct = np.mean(ref_min_mask)
+
         if len(unique_ref) <= 10:
             all_vals = np.unique(np.concatenate([reference, current]))
-            ref_pcts = [np.mean(reference == val) for val in all_vals]
-            curr_pcts = [np.mean(current == val) for val in all_vals]
+            ref_pcts = [np.mean(np.isclose(reference, val, atol=1e-6)) for val in all_vals]
+            curr_pcts = [np.mean(np.isclose(current, val, atol=1e-6)) for val in all_vals]
 
             ref_pct = np.array(ref_pcts)
             curr_pct = np.array(curr_pcts)
-        elif 0.0 in reference and np.mean(reference == 0.0) >= 0.05:
-            ref_zero_pct = np.mean(reference == 0.0)
-            curr_zero_pct = np.mean(current == 0.0)
+        elif ref_min_pct >= 0.05:
+            curr_min_mask = np.isclose(current, min_val, atol=1e-6) | (current == 0.0)
+            curr_min_pct = np.mean(curr_min_mask)
 
-            ref_nz = reference[reference != 0.0]
-            curr_nz = current[current != 0.0]
+            ref_nz = reference[~ref_min_mask]
+            curr_nz = current[~curr_min_mask]
 
             if len(ref_nz) > 0 and len(curr_nz) > 0:
                 q_edges = np.unique(np.percentile(ref_nz, np.linspace(0, 100, bins + 1)))
@@ -79,14 +83,14 @@ def compute_psi(
                     ref_nz_pcts = ref_nz_counts / len(reference)
                     curr_nz_pcts = curr_nz_counts / len(current)
 
-                    ref_pct = np.array([ref_zero_pct] + list(ref_nz_pcts))
-                    curr_pct = np.array([curr_zero_pct] + list(curr_nz_pcts))
+                    ref_pct = np.array([ref_min_pct] + list(ref_nz_pcts))
+                    curr_pct = np.array([curr_min_pct] + list(curr_nz_pcts))
                 else:
-                    ref_pct = np.array([ref_zero_pct, len(ref_nz) / len(reference)])
-                    curr_pct = np.array([curr_zero_pct, len(curr_nz) / len(current)])
+                    ref_pct = np.array([ref_min_pct, len(ref_nz) / len(reference)])
+                    curr_pct = np.array([curr_min_pct, len(curr_nz) / len(current)])
             else:
-                ref_pct = np.array([ref_zero_pct, len(ref_nz) / len(reference)])
-                curr_pct = np.array([curr_zero_pct, len(curr_nz) / len(current)])
+                ref_pct = np.array([ref_min_pct, len(ref_nz) / len(reference)])
+                curr_pct = np.array([curr_min_pct, len(curr_nz) / len(current)])
         else:
             percentiles = np.linspace(0, 100, bins + 1)
             bin_edges = np.percentile(reference, percentiles)

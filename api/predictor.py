@@ -122,16 +122,26 @@ class Predictor:
             
         self.model = joblib.load(MODEL_PATH)
         self.scaler = joblib.load(SCALER_PATH)
-        self.metadata = joblib.load(METADATA_PATH) if METADATA_PATH.exists() else {}
-        
-        self.active_threshold = float(self.metadata.get("active_threshold", 0.25))
-        self.f2_optimal_threshold = float(self.metadata.get("f2_optimal_threshold", 0.08))
-        self.cost_optimal_threshold = float(self.metadata.get("cost_optimal_threshold", 0.25))
-        self.active_strategy = str(self.metadata.get("active_strategy", "cost_optimal"))
-        self.feature_names = self.metadata.get("feature_names", list(getattr(self.model, "feature_names_in_", [])))
+        self._metadata_mtime = 0.0
+        self._reload_metadata_if_needed()
 
         # Real-time inference graph state
         self.graph_state = InferenceGraphState()
+
+    def _reload_metadata_if_needed(self):
+        if METADATA_PATH.exists():
+            try:
+                current_mtime = METADATA_PATH.stat().st_mtime
+                if getattr(self, "_metadata_mtime", 0.0) != current_mtime:
+                    self.metadata = joblib.load(METADATA_PATH)
+                    self._metadata_mtime = current_mtime
+                    self.active_threshold = float(self.metadata.get("active_threshold", self.metadata.get("cost_optimal_threshold", 0.017033)))
+                    self.f2_optimal_threshold = float(self.metadata.get("f2_optimal_threshold", 0.201402))
+                    self.cost_optimal_threshold = float(self.metadata.get("cost_optimal_threshold", 0.017033))
+                    self.active_strategy = str(self.metadata.get("active_strategy", "cost_optimal"))
+                    self.feature_names = self.metadata.get("feature_names", list(getattr(self.model, "feature_names_in_", [])))
+            except Exception:
+                pass
 
     def prepare_features(self, raw_tx: Dict[str, Any]) -> pd.DataFrame:
         """
@@ -194,6 +204,7 @@ class Predictor:
         Execute full end-to-end inference flow for a single transaction:
         Input -> Prepare Features -> XGBoost Score -> SHAP Top 5 -> LLM Explanation -> Decision -> Log & Alert.
         """
+        self._reload_metadata_if_needed()
         df_scaled = self.prepare_features(raw_tx)
         
         # XGBoost probability
@@ -263,4 +274,6 @@ def get_predictor() -> Predictor:
     global _PREDICTOR
     if _PREDICTOR is None:
         _PREDICTOR = Predictor()
+    else:
+        _PREDICTOR._reload_metadata_if_needed()
     return _PREDICTOR

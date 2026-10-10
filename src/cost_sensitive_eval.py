@@ -11,7 +11,7 @@ computes expected cost curves, and performs amount-weighted threshold selection.
 
 import sys
 from pathlib import Path
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Optional
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -112,6 +112,107 @@ def expected_cost(
         "fn": fn_count,
         "tn": tn_count,
     }
+
+
+def format_cost_table_row(
+    variant_name: str,
+    y_true: np.ndarray,
+    y_pred_proba: np.ndarray,
+    threshold: float,
+    amounts: np.ndarray,
+    fp_review_cost: float = 50.0,
+    no_model_cost: Optional[float] = None,
+    flag_everything_cost: Optional[float] = None,
+) -> Dict[str, Any]:
+    """
+    Build a single cost table row with strict per-row integrity checks.
+    
+    Calculations:
+      alert_rate = (TP + FP) / N
+      precision  = TP / (TP + FP)
+      recall     = TP / (TP + FN)
+      fn_cost    = amount of missed fraud (total_fraud_amount - caught_amount)
+      fp_cost    = FP * fp_review_cost
+      total_cost = fn_cost + fp_cost
+    
+    Integrity Checks (raises ValueError if failed):
+      1. TP + FP + FN + TN == N
+      2. caught_amount + missed_amount == total_fraud_amount
+      3. total_cost == fn_cost + fp_cost
+    """
+    eval_res = expected_cost(y_true, y_pred_proba, threshold, amounts, fp_cost=fp_review_cost)
+
+    tp = eval_res["tp"]
+    fp = eval_res["fp"]
+    fn = eval_res["fn"]
+    tn = eval_res["tn"]
+    n = len(y_true)
+
+    # 1. Row confusion matrix partition integrity check
+    if tp + fp + fn + tn != n:
+        raise ValueError(f"Integrity error in row '{variant_name}': TP ({tp}) + FP ({fp}) + FN ({fn}) + TN ({tn}) = {tp+fp+fn+tn} != N ({n})")
+
+    total_fraud_amount = float(eval_res["total_fraud_amount"])
+    caught_amount = float(eval_res["amount_caught"])
+    missed_amount = float(eval_res["amount_missed"])
+
+    # 2. Fraud amount conservation integrity check
+    if abs((caught_amount + missed_amount) - total_fraud_amount) >= 0.01:
+        raise ValueError(f"Integrity error in row '{variant_name}': caught ({caught_amount:.2f}) + missed ({missed_amount:.2f}) = {caught_amount+missed_amount:.2f} != total fraud ({total_fraud_amount:.2f})")
+
+    fn_cost = missed_amount
+    fp_cost = float(fp * fp_review_cost)
+    total_cost = fn_cost + fp_cost
+
+    # 3. Total financial cost reconciliation check
+    if abs(total_cost - float(eval_res["total_cost"])) >= 0.01:
+        raise ValueError(f"Integrity error in row '{variant_name}': total_cost ({total_cost:.2f}) != eval_res total_cost ({eval_res['total_cost']:.2f})")
+
+    alert_rate = (tp + fp) / n if n > 0 else 0.0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
+    if no_model_cost is None:
+        no_model_cost = total_fraud_amount
+    if flag_everything_cost is None:
+        flag_everything_cost = float((n - int(np.sum(y_true))) * fp_review_cost)
+
+    beats_fn = total_cost < no_model_cost
+    beats_fe = total_cost < (flag_everything_cost * 0.95)
+
+    is_effectively_fe = alert_rate > 0.90
+    variant_label = variant_name + (" (Effectively Flag-Everything)" if is_effectively_fe else "")
+
+    formatted_line = (
+        f"{variant_label:<35} | {tp:<5} | {fp:<5} | {fn:<5} | {tn:<6} | "
+        f"{alert_rate*100:>9.2f}% | {precision*100:>8.2f}% | {recall*100:>6.2f}% | "
+        f"Rs. {fn_cost:<13,.2f} | Rs. {fp_cost:<12,.2f} | Rs. {total_cost:<13,.2f} | "
+        f"{'YES' if beats_fn else 'NO':<10} | {'YES' if beats_fe else 'NO':<15}"
+    )
+
+    return {
+        "variant_name": variant_name,
+        "variant_label": variant_label,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
+        "n": n,
+        "alert_rate": alert_rate,
+        "precision": precision,
+        "recall": recall,
+        "fn_cost": fn_cost,
+        "fp_cost": fp_cost,
+        "total_cost": total_cost,
+        "caught_amount": caught_amount,
+        "missed_amount": missed_amount,
+        "total_fraud_amount": total_fraud_amount,
+        "beats_fn": beats_fn,
+        "beats_fe": beats_fe,
+        "threshold": threshold,
+        "formatted_line": formatted_line,
+    }
+
 
 
 def threshold_sweep(

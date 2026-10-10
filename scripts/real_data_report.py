@@ -138,9 +138,11 @@ def main():
 
     eval_results = {}
 
+    from src.cost_sensitive_eval import format_cost_table_row
+
     print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
-    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Precision':<9} | {'Recall':<7} | {'Alert Rate':<10} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
-    print("-" * 175)
+    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Alert Rate':<10} | {'Precision':<9} | {'Recall':<7} | {'FN Cost (Rs.)':<17} | {'FP Cost (Rs.)':<16} | {'Total Cost (Rs.)':<17} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
+    print("-" * 180)
 
     models_dict = {}
 
@@ -174,46 +176,32 @@ def main():
 
         f2_edge = (f2_opt <= 1e-4) or (f2_opt >= 0.9999)
         cost_edge = (cost_opt <= 1e-4) or (cost_opt >= 0.9999)
-        edge_str = f"F2 Edge: {'YES' if f2_edge else 'NO'} | Cost Edge: {'YES' if cost_edge else 'NO'}"
 
         pr_auc = average_precision_score(y_test, p_te)
         roc_auc = roc_auc_score(y_test, p_te)
         pr_ci, cost_ci = bootstrap_pr_auc_and_cost_ci(y_test, p_te, cost_opt, amounts_test)
 
-        preds_te = (p_te >= cost_opt).astype(int)
-        rec = float(np.sum((preds_te == 1) & (y_test == 1)) / max(np.sum(y_test == 1), 1))
+        formatted_row = format_cost_table_row(
+            variant_name=v_name,
+            y_true=y_test,
+            y_pred_proba=p_te,
+            threshold=cost_opt,
+            amounts=amounts_test,
+            fp_review_cost=50.0,
+            no_model_cost=cost_flag_nothing,
+            flag_everything_cost=cost_flag_everything,
+        )
 
+        preds_te = (p_te >= cost_opt).astype(int)
         if has_mechanism:
             ring_mask = (test_df["mechanism"] == "MECH_B_RING").values
             n_ring = int(np.sum(ring_mask))
             if n_ring > 0:
                 ring_rec = float(np.sum((preds_te == 1) & ring_mask) / n_ring)
-                ring_str = f"{ring_rec*100:.1f}% (n={n_ring})"
             else:
                 ring_rec = None
-                ring_str = "N/A"
         else:
             ring_rec = None
-            ring_str = "N/A"
-
-        cost_res = expected_cost(y_test, p_te, cost_opt, amounts_test)
-        tot_cost = float(cost_res["total_cost"])
-
-        # Cost Table Programmatic Integrity Assertions
-        total_fraud_amt = float(np.sum(amounts_test[y_test == 1]))
-        caught = float(cost_res["amount_caught"])
-        missed = float(cost_res["amount_missed"])
-        fp_count = int(cost_res["fp"])
-        
-        if abs((caught + missed) - total_fraud_amt) >= 0.01:
-            raise RuntimeError(f"Row Integrity Break: Caught ({caught:.2f}) + Missed ({missed:.2f}) != Total Fraud ({total_fraud_amt:.2f})")
-        expected_cost_calc = missed + 50.0 * fp_count
-        if abs(tot_cost - expected_cost_calc) >= 0.01:
-            raise RuntimeError(f"Row Integrity Break: Cost ({tot_cost:.2f}) != Missed ({missed:.2f}) + 50*FP ({expected_cost_calc:.2f})")
-
-        alert_rate = (cost_res["tp"] + cost_res["fp"]) / len(y_test) * 100.0
-        beats_fn = tot_cost < cost_flag_nothing
-        beats_fe = tot_cost < (cost_flag_everything * 0.95)
 
         eval_results[v_name] = {
             "pr_auc": pr_auc,
@@ -223,22 +211,21 @@ def main():
             "t_f2": f2_opt,
             "f2_edge": f2_edge,
             "cost_edge": cost_edge,
-            "cost": tot_cost,
+            "cost": formatted_row["total_cost"],
             "cost_ci": cost_ci,
             "ring_rec": ring_rec,
-            "beats_fn": beats_fn,
-            "beats_fe": beats_fe,
-            "alert_rate": alert_rate,
-            "precision": cost_res["precision"],
-            "recall": cost_res["recall"],
+            "beats_fn": formatted_row["beats_fn"],
+            "beats_fe": formatted_row["beats_fe"],
+            "alert_rate": formatted_row["alert_rate"],
+            "precision": formatted_row["precision"],
+            "recall": formatted_row["recall"],
+            "p_te": p_te,
+            "p_va": p_va,
         }
 
-        v_label = v_name + (" (Effectively Flag-Everything)" if alert_rate > 90.0 else "")
-        b_fn_str = "YES" if beats_fn else "NO"
-        b_fe_str = "YES" if beats_fe else "NO"
-        print(f"{v_label:<35} | {cost_res['tp']:<5} | {cost_res['fp']:<5} | {cost_res['fn']:<5} | {cost_res['tn']:<6} | {cost_res['precision']*100:>8.2f}% | {cost_res['recall']*100:>6.2f}% | {alert_rate:>9.2f}% | Rs. {caught:<10,.2f} | Rs. {missed:<10,.2f} | Rs. {tot_cost:<10,.2f} | {b_fn_str:<10} | {b_fe_str:<15}")
+        print(formatted_row["formatted_line"])
 
-    print("-" * 175)
+    print("-" * 180)
 
     print("\n=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===")
     print(f"{'FP Review Cost (Rs.)':<20} | {'Variant':<28} | {'T_COST':<8} | {'Alert Rate':<10} | {'Recall':<7} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")

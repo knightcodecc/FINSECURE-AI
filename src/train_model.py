@@ -79,15 +79,19 @@ def evaluate_variant(
     val_prob = clf.predict_proba(X_val)[:, 1]
     test_prob = clf.predict_proba(X_test)[:, 1]
 
-    # Tune OWN validation thresholds
+    # Validation metrics & threshold sweep
+    val_base_rate = float(np.mean(y_val))
+    val_pr_auc = float(average_precision_score(y_val, val_prob))
+    val_roc_auc = float(roc_auc_score(y_val, val_prob)) if len(np.unique(y_val)) > 1 else 0.5
     val_sweep_df, f2_opt, cost_opt = threshold_sweep(y_val, val_prob, amt_val, fp_cost=50.0, fn_multiplier=1.0)
 
     print(f"\n--- RAW VALIDATION SWEEP FOR VARIANT: {name} ---")
+    print(f"Validation Metrics: Base Rate = {val_base_rate:.4f} | PR-AUC = {val_pr_auc:.4f} | ROC-AUC = {val_roc_auc:.4f}")
     min_cost_idx = val_sweep_df["total_cost"].idxmin()
     max_f2_idx = val_sweep_df["f2_score"].idxmax()
     print(f"Validation Cost Sweep Min Row (idx={min_cost_idx}): threshold={val_sweep_df.loc[min_cost_idx, 'threshold']:.4f}, total_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'total_cost']:,.2f}, fn_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'fn_cost']:,.2f}, fp_cost=Rs. {val_sweep_df.loc[min_cost_idx, 'fp_cost']:,.2f}")
     print(f"Validation F2 Sweep Max Row (idx={max_f2_idx}): threshold={val_sweep_df.loc[max_f2_idx, 'threshold']:.4f}, f2_score={val_sweep_df.loc[max_f2_idx, 'f2_score']:.4f}, recall={val_sweep_df.loc[max_f2_idx, 'recall']:.4f}, precision={val_sweep_df.loc[max_f2_idx, 'precision']:.4f}")
-    print(f"Selected Thresholds: F2-Optimal = {f2_opt:.4f} | Cost-Optimal = {cost_opt:.4f}")
+    print(f"Selected Validation Thresholds: F2-Optimal = {f2_opt:.4f} | Cost-Optimal = {cost_opt:.4f}")
 
     # Clean Test set evaluation
     base_rate = float(np.mean(y_test))
@@ -230,16 +234,24 @@ def train_and_evaluate():
     no_model_cost = float(np.sum(amt_test[y_test == 1]))  # Flag Nothing: FN = all fraud amounts
     flag_everything_cost = float(50.0 * np.sum(y_test == 0)) # Flag Everything: FP = all non-fraud * 50.0
 
+    from src.cost_sensitive_eval import format_cost_table_row
+
     print("\n=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===")
-    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Precision':<9} | {'Recall':<7} | {'Alert Rate':<10} | {'Caught (Rs.)':<14} | {'Missed (Rs.)':<14} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
-    print("-" * 175)
+    print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Alert Rate':<10} | {'Precision':<9} | {'Recall':<7} | {'FN Cost (Rs.)':<17} | {'FP Cost (Rs.)':<16} | {'Total Cost (Rs.)':<17} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
+    print("-" * 180)
     for r in results:
-        alert_rate = (r["tp"] + r["fp"]) / len(y_test) * 100.0
-        variant_label = r['name'] + (" (Effectively Flag-Everything)" if alert_rate > 90.0 else "")
-        b_fn = "YES" if r["total_cost_cost_opt"] < no_model_cost else "NO"
-        b_fe = "YES" if r["total_cost_cost_opt"] < (flag_everything_cost * 0.95) else "NO"
-        print(f"{variant_label:<35} | {r['tp']:<5} | {r['fp']:<5} | {r['fn']:<5} | {r['tn']:<6} | {r['precision']*100:>8.2f}% | {r['recall']*100:>6.2f}% | {alert_rate:>9.2f}% | Rs. {r['amt_caught']:<10,.2f} | Rs. {r['amt_missed']:<10,.2f} | Rs. {r['total_cost_cost_opt']:<10,.2f} | {b_fn:<10} | {b_fe:<15}")
-    print("-" * 175)
+        formatted_row = format_cost_table_row(
+            variant_name=r["name"],
+            y_true=y_test,
+            y_pred_proba=r["test_prob"],
+            threshold=r["cost_opt_thresh"],
+            amounts=amt_test,
+            fp_review_cost=50.0,
+            no_model_cost=no_model_cost,
+            flag_everything_cost=flag_everything_cost,
+        )
+        print(formatted_row["formatted_line"])
+    print("-" * 180)
 
     print("\n=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===")
     print(f"{'FP Review Cost (Rs.)':<20} | {'Variant':<28} | {'T_COST':<8} | {'Alert Rate':<10} | {'Recall':<7} | {'Total Cost (Rs.)':<14} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")

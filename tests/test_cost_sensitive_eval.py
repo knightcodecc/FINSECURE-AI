@@ -113,3 +113,55 @@ def test_saved_cost_optimal_threshold_equals_validation_cost_sweep_argmin():
 
         assert abs(saved_cost_thresh - argmin_thresh) < 1e-4, f"Saved threshold {saved_cost_thresh} != argmin sweep threshold {argmin_thresh}"
 
+
+def test_format_cost_table_row_handmade_confusion_matrix():
+    from src.cost_sensitive_eval import format_cost_table_row
+
+    # Hand-crafted scenario:
+    # 10 rows: 4 frauds (amounts 1000, 2000, 3000, 4000 = total 10,000), 6 non-frauds (amounts 100 each)
+    y_true = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])
+    y_proba = np.array([0.9, 0.8, 0.4, 0.2, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1])
+    amounts = np.array([1000.0, 2000.0, 3000.0, 4000.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
+
+    # Threshold 0.5:
+    # y_pred = [1, 1, 0, 0, 1, 1, 0, 0, 0, 0]
+    # TP: rows 0, 1 (count 2, caught 1000+2000 = 3000)
+    # FP: rows 4, 5 (count 2)
+    # FN: rows 2, 3 (count 2, missed 3000+4000 = 7000)
+    # TN: rows 6, 7, 8, 9 (count 4)
+    # Alert rate: (2+2)/10 = 0.40 (40.0%)
+    # Precision: 2/(2+2) = 0.50 (50.0%)
+    # Recall: 2/(2+2) = 0.50 (50.0%)
+    # FN cost: 7000.0
+    # FP cost: 2 * 50.0 = 100.0
+    # Total cost: 7000 + 100 = 7100.0
+
+    row = format_cost_table_row(
+        variant_name="Handcrafted Test Variant",
+        y_true=y_true,
+        y_pred_proba=y_proba,
+        threshold=0.5,
+        amounts=amounts,
+        fp_review_cost=50.0,
+    )
+
+    assert row["tp"] == 2
+    assert row["fp"] == 2
+    assert row["fn"] == 2
+    assert row["tn"] == 4
+    assert row["n"] == 10
+    assert row["alert_rate"] == 0.40
+    assert row["precision"] == 0.50
+    assert row["recall"] == 0.50
+    assert row["fn_cost"] == 7000.0
+    assert row["fp_cost"] == 100.0
+    assert row["total_cost"] == 7100.0
+    assert row["caught_amount"] == 3000.0
+    assert row["missed_amount"] == 7000.0
+    assert row["total_fraud_amount"] == 10000.0
+
+    # Assert integrity check fails if y_true or prediction shape mismatch
+    with pytest.raises((ValueError, IndexError)):
+        format_cost_table_row("Bad Row", y_true[:5], y_proba, 0.5, amounts)
+
+

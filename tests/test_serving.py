@@ -135,6 +135,35 @@ def test_get_metrics_cost_endpoint():
     assert "active_threshold" in data
 
 
+def test_predict_threshold_used_matches_metrics_cost_active_threshold():
+    """Verify that /predict's threshold_used strictly equals /metrics/cost's active_threshold (Amendment 1/2)."""
+    from fastapi.testclient import TestClient
+    from api.main import app
+
+    if not Path("models/model_metadata.joblib").exists() or not Path("models/xgboost_model.joblib").exists():
+        pytest.skip("Model or metadata joblib missing")
+
+    client = TestClient(app)
+    cost_res = client.get("/metrics/cost").json()
+    active_thresh = cost_res["active_threshold"]
+
+    raw_tx = {
+        "step": 500,
+        "type": "TRANSFER",
+        "amount": 250000.0,
+        "nameOrig": "C_TEST_SYNC_ORIG",
+        "oldbalanceOrg": 300000.0,
+        "newbalanceOrig": 50000.0,
+        "nameDest": "M_TEST_SYNC_DEST",
+        "oldbalanceDest": 10000.0,
+        "newbalanceDest": 260000.0
+    }
+    pred_res = client.post("/predict", json=raw_tx).json()
+    threshold_used = pred_res["threshold_used"]
+
+    assert abs(threshold_used - active_thresh) < 1e-6, f"Predict threshold {threshold_used} != active threshold {active_thresh}"
+
+
 def test_drift_endpoints_fastapi():
     """Verify GET /drift/status and POST /drift/simulate via FastAPI TestClient."""
     from fastapi.testclient import TestClient
