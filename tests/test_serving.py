@@ -237,3 +237,53 @@ def test_sqlite_shap_top_features_json_column(tmp_path):
         assert parsed_shap[0]["feature"] == "amount"
         assert parsed_shap[0]["shap_value"] == 1.5
 
+
+def test_predictor_strictly_positive_amount_assertion():
+    """Verify that predictor asserts amount > 0 and fails loudly on scaled or negative values."""
+    predictor = get_predictor()
+    bad_tx = {
+        "step": 1,
+        "type": "CASH_OUT",
+        "amount": -0.1259,  # Scaled z-score value
+        "nameOrig": "C_TEST",
+        "nameDest": "M_TEST",
+    }
+    with pytest.raises(AssertionError, match="strictly positive"):
+        predictor.prepare_features(bad_tx)
+
+
+def test_serving_parity_small_slice():
+    """Verify live serving parity against batch inference on a small slice of clean-test transactions."""
+    raw_path = Path("data/paysim_synth.csv") if Path("data/paysim_synth.csv").exists() else Path("data/transactions_with_graph_features.parquet")
+    if not raw_path.exists() or not Path("data/features_test.parquet").exists():
+        pytest.skip("Dataset files missing")
+        
+    predictor = get_predictor(warm=True)
+    raw_df = pd.read_csv(raw_path) if raw_path.suffix == ".csv" else pd.read_parquet(raw_path)
+    raw_sorted = raw_df.sort_values("step").reset_index(drop=True)
+    clean_test_raw = raw_sorted[(raw_sorted["step"] > 540) & (raw_sorted["step"] <= 629)].reset_index(drop=True).iloc[:20]
+    batch_feat = pd.read_parquet("data/features_test.parquet").iloc[:20]
+    
+    live_probs = []
+    for i in range(len(clean_test_raw)):
+        r = clean_test_raw.iloc[i]
+        tx = {
+            "step": int(r["step"]),
+            "type": str(r["type"]),
+            "amount": float(r["amount"]),
+            "nameOrig": str(r["nameOrig"]),
+            "oldbalanceOrg": float(r["oldbalanceOrg"]),
+            "newbalanceOrig": float(r["newbalanceOrig"]),
+            "nameDest": str(r["nameDest"]),
+            "oldbalanceDest": float(r["oldbalanceDest"]),
+            "newbalanceDest": float(r["newbalanceDest"]),
+        }
+        res = predictor.predict_one(tx)
+        live_probs.append(res["prediction_proba"])
+        
+    batch_probs = predictor.model.predict_proba(batch_feat[predictor.feature_names])[:, 1]
+    diffs = np.abs(np.array(live_probs) - batch_probs)
+    assert np.mean(diffs) < 0.10, f"Mean diff {np.mean(diffs)} exceeded threshold"
+    assert not np.isnan(diffs).any()
+
+

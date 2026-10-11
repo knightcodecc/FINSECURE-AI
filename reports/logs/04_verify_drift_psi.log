@@ -1,52 +1,52 @@
-﻿Loading datasets and deployed XGBoost model...
-
-===================================================================================================================
-FULL PER-FEATURE POPULATION STABILITY INDEX (PSI) TABLE Across 33 MODEL COLUMNS
-===================================================================================================================
-Drift Thresholds: DRIFT_PSI_STABLE = 0.10 | DRIFT_PSI_WARNING = 0.25
-1. Reference:       Train Split (steps 1..420, 169,746 rows)
-2. Clean Test:      Clean Test Split (steps 541..629, 35,954 rows)
-3. Shift Window:    Shift Split (steps 630..743, 45,984 rows)
-4. Amount x5:       Clean Test Split (amount * 5, 35,954 rows)
--------------------------------------------------------------------------------------------------------------------
-Feature Name                      | PSI Inclusion Status   | Clean Test   | Shift Window | Amount x5   
--------------------------------------------------------------------------------------------------------------------
-amount                            | INCLUDED               | 0.0004       | 0.0030       | 1.1672      
-oldbalanceOrg                     | INCLUDED               | 0.0002       | 0.0028       | 0.0002      
-newbalanceOrig                    | INCLUDED               | 0.0005       | 0.0028       | 0.0005      
-oldbalanceDest                    | INCLUDED               | 0.0003       | 0.0013       | 0.0003      
-newbalanceDest                    | INCLUDED               | 0.0005       | 0.0029       | 0.0005      
-orig_in_degree                    | EXCLUDED_CUMULATIVE    | 0.0000       | 0.0000       | 0.0000      
-orig_out_degree                   | EXCLUDED_CUMULATIVE    | 1.3410       | 1.9992       | 1.3410      
-orig_pagerank                     | EXCLUDED_CUMULATIVE    | 13.4852      | 13.6956      | 13.4852     
-orig_component_size               | EXCLUDED_CUMULATIVE    | 5.1186       | 5.8994       | 5.1186      
-orig_fraud_exposure               | EXCLUDED_CUMULATIVE    | 0.0512       | 0.0868       | 0.0512      
-dest_in_degree                    | EXCLUDED_CUMULATIVE    | 2.5120       | 3.4901       | 2.5120      
-dest_out_degree                   | EXCLUDED_CUMULATIVE    | 0.0000       | 0.0000       | 0.0000      
-dest_pagerank                     | EXCLUDED_CUMULATIVE    | 1.5663       | 1.8399       | 1.5663      
-dest_component_size               | EXCLUDED_CUMULATIVE    | 6.2301       | 7.1595       | 6.2301      
-dest_fraud_exposure               | EXCLUDED_CUMULATIVE    | 0.4928       | 0.4328       | 0.4928      
-type_CASH_IN                      | INCLUDED               | 0.0000       | 0.0000       | 0.0000      
-type_CASH_OUT                     | INCLUDED               | 0.0001       | 0.0001       | 0.0001      
-type_DEBIT                        | INCLUDED               | 0.0000       | 0.3348       | 0.0000      
-type_PAYMENT                      | INCLUDED               | 0.0000       | 0.0996       | 0.0000      
-type_TRANSFER                     | INCLUDED               | 0.0000       | 0.0013       | 0.0000      
-errorBalanceOrig                  | INCLUDED               | 0.0001       | 0.0005       | 3.8302      
-errorBalanceDest                  | INCLUDED               | 0.0000       | 0.0003       | 0.2346      
-log_amount                        | INCLUDED               | 0.0004       | 0.0030       | 1.1672      
-account_drained                   | INCLUDED               | 0.0001       | 0.0003       | 0.0001      
-dest_balance_zero                 | INCLUDED               | 0.0000       | 0.0658       | 0.0000      
-orig_balance_zero                 | INCLUDED               | 0.0000       | 0.0000       | 0.0000      
-amount_to_oldbalanceOrg_ratio     | INCLUDED               | 0.0003       | 0.0013       | 0.5629      
-amount_to_oldbalanceDest_ratio    | INCLUDED               | 0.0004       | 0.0048       | 0.5747      
-hour_of_day                       | EXCLUDED_CALENDAR      | 0.0119       | 0.0070       | 0.0119      
-high_risk_hour                    | EXCLUDED_CALENDAR      | 0.0013       | 0.0079       | 0.0013      
-day_of_week                       | EXCLUDED_CALENDAR      | 2.3856       | 2.1763       | 2.3856      
-net_change_orig                   | INCLUDED               | 0.0003       | 0.0026       | 0.0003      
-net_change_dest                   | INCLUDED               | 0.0005       | 0.0025       | 0.0005      
--------------------------------------------------------------------------------------------------------------------
-REAL MODEL SCORE PSI              | SCORE_PSI              | 0.0202       | 0.0322       | 2.6648      
-OVERALL DRIFT STATUS              | SUMMARY                | STABLE       | DRIFT_DETECTED | DRIFT_DETECTED
-RETRAIN RECOMMENDED?              | FLAG                   | False        | True         | True        
-===================================================================================================================
-
+Loading datasets and deployed XGBoost model...
+
+===================================================================================================================
+FULL PER-FEATURE POPULATION STABILITY INDEX (PSI) TABLE Across 33 MODEL COLUMNS
+===================================================================================================================
+Drift Thresholds: DRIFT_PSI_STABLE = 0.10 | DRIFT_PSI_WARNING = 0.25
+1. Reference:       Train Split (steps 1..420, 169,746 rows)
+2. Clean Test:      Clean Test Split (steps 541..629, 35,954 rows)
+3. Shift Window:    Shift Split (steps 630..743, 45,984 rows)
+4. Amount x5:       Clean Test Split (amount * 5, 35,954 rows)
+-------------------------------------------------------------------------------------------------------------------
+Feature Name                      | PSI Inclusion Status   | Clean Test   | Shift Window | Amount x5   
+-------------------------------------------------------------------------------------------------------------------
+amount                            | INCLUDED               | 0.0004       | 0.0030       | 1.1672      
+oldbalanceOrg                     | INCLUDED               | 0.0002       | 0.0028       | 0.0002      
+newbalanceOrig                    | INCLUDED               | 0.0005       | 0.0028       | 0.0005      
+oldbalanceDest                    | INCLUDED               | 0.0003       | 0.0013       | 0.0003      
+newbalanceDest                    | INCLUDED               | 0.0005       | 0.0029       | 0.0005      
+orig_in_degree                    | EXCLUDED_CUMULATIVE    | 0.0000       | 0.0000       | 0.0000      
+orig_out_degree                   | EXCLUDED_CUMULATIVE    | 1.3410       | 1.9992       | 1.3410      
+orig_pagerank                     | EXCLUDED_CUMULATIVE    | 13.4852      | 13.6956      | 13.4852     
+orig_component_size               | EXCLUDED_CUMULATIVE    | 5.1186       | 5.8994       | 5.1186      
+orig_fraud_exposure               | EXCLUDED_CUMULATIVE    | 0.0512       | 0.0868       | 0.0512      
+dest_in_degree                    | EXCLUDED_CUMULATIVE    | 2.5120       | 3.4901       | 2.5120      
+dest_out_degree                   | EXCLUDED_CUMULATIVE    | 0.0000       | 0.0000       | 0.0000      
+dest_pagerank                     | EXCLUDED_CUMULATIVE    | 1.5663       | 1.8399       | 1.5663      
+dest_component_size               | EXCLUDED_CUMULATIVE    | 6.2301       | 7.1595       | 6.2301      
+dest_fraud_exposure               | EXCLUDED_CUMULATIVE    | 0.4928       | 0.4328       | 0.4928      
+type_CASH_IN                      | INCLUDED               | 0.0000       | 0.0000       | 0.0000      
+type_CASH_OUT                     | INCLUDED               | 0.0001       | 0.0001       | 0.0001      
+type_DEBIT                        | INCLUDED               | 0.0000       | 0.3348       | 0.0000      
+type_PAYMENT                      | INCLUDED               | 0.0000       | 0.0996       | 0.0000      
+type_TRANSFER                     | INCLUDED               | 0.0000       | 0.0013       | 0.0000      
+errorBalanceOrig                  | INCLUDED               | 0.0001       | 0.0005       | 3.8302      
+errorBalanceDest                  | INCLUDED               | 0.0000       | 0.0003       | 0.2346      
+log_amount                        | INCLUDED               | 0.0004       | 0.0030       | 1.1672      
+account_drained                   | INCLUDED               | 0.0001       | 0.0003       | 0.0001      
+dest_balance_zero                 | INCLUDED               | 0.0000       | 0.0658       | 0.0000      
+orig_balance_zero                 | INCLUDED               | 0.0000       | 0.0000       | 0.0000      
+amount_to_oldbalanceOrg_ratio     | INCLUDED               | 0.0003       | 0.0013       | 0.5629      
+amount_to_oldbalanceDest_ratio    | INCLUDED               | 0.0004       | 0.0048       | 0.5747      
+hour_of_day                       | EXCLUDED_CALENDAR      | 0.0119       | 0.0070       | 0.0119      
+high_risk_hour                    | EXCLUDED_CALENDAR      | 0.0013       | 0.0079       | 0.0013      
+day_of_week                       | EXCLUDED_CALENDAR      | 2.3856       | 2.1763       | 2.3856      
+net_change_orig                   | INCLUDED               | 0.0003       | 0.0026       | 0.0003      
+net_change_dest                   | INCLUDED               | 0.0005       | 0.0025       | 0.0005      
+-------------------------------------------------------------------------------------------------------------------
+REAL MODEL SCORE PSI              | SCORE_PSI              | 0.0142       | 0.0254       | 3.0191      
+OVERALL DRIFT STATUS              | SUMMARY                | STABLE       | DRIFT_DETECTED | DRIFT_DETECTED
+RETRAIN RECOMMENDED?              | FLAG                   | False        | True         | True        
+===================================================================================================================
+

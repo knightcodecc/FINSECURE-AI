@@ -1,15 +1,15 @@
-﻿============================= test session starts =============================
+============================= test session starts =============================
 platform win32 -- Python 3.11.7, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\Pratham Bhat\Downloads\finsecure-ai-v2-scaffold\finsecure-ai-v2
 plugins: anyio-4.14.1, timeout-2.4.0
-collected 28 items
+collected 30 items
 
-tests\test_cost_sensitive_eval.py ......                                 [ 21%]
-tests\test_drift_monitor.py ....                                         [ 35%]
-tests\test_feature_engineering.py .                                      [ 39%]
-tests\test_graph_features.py ......                                      [ 60%]
-tests\test_real_data_compatibility.py .                                  [ 64%]
-tests\test_serving.py ........                                           [ 92%]
+tests\test_cost_sensitive_eval.py ......                                 [ 20%]
+tests\test_drift_monitor.py ....                                         [ 33%]
+tests\test_feature_engineering.py .                                      [ 36%]
+tests\test_graph_features.py ......                                      [ 56%]
+tests\test_real_data_compatibility.py .                                  [ 60%]
+tests\test_serving.py ..........                                         [ 93%]
 tests\test_xai.py ..                                                     [100%]
 
 ============================== warnings summary ===============================
@@ -30,4 +30,4 @@ tests/test_serving.py::test_get_metrics_cost_endpoint
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 28 passed, 4 warnings in 11.35s =======================
+======================= 30 passed, 4 warnings in 23.46s =======================

@@ -110,12 +110,18 @@ def run_demo():
     checks_passed = []
     checks_passed.append(("Model Version Archive Triggered", len(archive_table_name) > 0))
 
+    # Load raw dataset for real transaction parameters
+    raw_path = Path("data/paysim_synth.csv") if Path("data/paysim_synth.csv").exists() else Path("data/transactions_with_graph_features.parquet")
+    raw_df = pd.read_csv(raw_path) if raw_path.suffix == ".csv" else pd.read_parquet(raw_path)
+    raw_sorted = raw_df.sort_values("step").reset_index(drop=True)
+    raw_test = raw_sorted[(raw_sorted["step"] > 540) & (raw_sorted["step"] <= 629)].reset_index(drop=True)
+
     # Select scenario rows from clean-test split using documented rules
     feature_cols = metadata["feature_names"]
     test_probs = predictor.model.predict_proba(test_df[feature_cols])[:, 1]
     
     # Selection Rule A: Ring Fraud (first row in clean test where isFraud == 1 and mechanism == 'MECH_B_RING')
-    ring_rows = test_df[(test_df["isFraud"] == 1) & (test_df["mechanism"] == "MECH_B_RING")]
+    ring_rows = raw_test[(raw_test["isFraud"] == 1) & (raw_test["mechanism"] == "MECH_B_RING")]
     idx_a = ring_rows.index[0]
     
     # Selection Rule B: Legitimate Cleared (Clean test row index 0)
@@ -128,21 +134,21 @@ def run_demo():
     # SCENARIO A: Online Ring Fraud (Clean Test Row ID 60)
     # -------------------------------------------------------------------------
     print(f"\n--- SCENARIO A: Online Ring Fraud (Clean Test Row ID {idx_a}) ---")
-    row_a = test_df.loc[idx_a]
+    row_a = raw_test.iloc[idx_a]
     tx_a = {
         "step": int(row_a["step"]),
-        "type": "TRANSFER",
+        "type": str(row_a["type"]),
         "amount": float(row_a["amount"]),
-        "nameOrig": "C_MULE_RING_10",
+        "nameOrig": str(row_a["nameOrig"]),
         "oldbalanceOrg": float(row_a["oldbalanceOrg"]),
         "newbalanceOrig": float(row_a["newbalanceOrig"]),
-        "nameDest": "M_HUB_CASHOUT_1",
+        "nameDest": str(row_a["nameDest"]),
         "oldbalanceDest": float(row_a["oldbalanceDest"]),
         "newbalanceDest": float(row_a["newbalanceDest"]),
     }
     
     # Ensure graph state has exposure signal from prior step
-    predictor.graph_state.update_graph("C_MULE_RING_10", "M_HUB_CASHOUT_1", float(row_a["amount"]), is_confirmed_fraud=True)
+    predictor.graph_state.update_graph(tx_a["nameOrig"], tx_a["nameDest"], tx_a["amount"], is_confirmed_fraud=True)
     res_a = predictor.predict_one(tx_a)
     
     print(f"Selection Rule: First Clean-Test row matching mechanism=='MECH_B_RING' (Row ID: {idx_a})")
@@ -161,15 +167,15 @@ def run_demo():
     # SCENARIO B: Legitimate Cleared Transaction (Clean Test Row ID 0)
     # -------------------------------------------------------------------------
     print(f"\n--- SCENARIO B: Legitimate Cleared Transaction (Clean Test Row ID {idx_b}) ---")
-    row_b = test_df.loc[idx_b]
+    row_b = raw_test.iloc[idx_b]
     tx_b = {
         "step": int(row_b["step"]),
-        "type": "PAYMENT",
+        "type": str(row_b["type"]),
         "amount": float(row_b["amount"]),
-        "nameOrig": "C_TEST_LEGIT",
+        "nameOrig": str(row_b["nameOrig"]),
         "oldbalanceOrg": float(row_b["oldbalanceOrg"]),
         "newbalanceOrig": float(row_b["newbalanceOrig"]),
-        "nameDest": "M_STORE_LEGIT",
+        "nameDest": str(row_b["nameDest"]),
         "oldbalanceDest": float(row_b["oldbalanceDest"]),
         "newbalanceDest": float(row_b["newbalanceDest"]),
     }
@@ -187,28 +193,28 @@ def run_demo():
     # SCENARIO C: Borderline Case
     # -------------------------------------------------------------------------
     print(f"\n--- SCENARIO C: Borderline Case (Clean Test Row ID {idx_c}) ---")
-    row_c = test_df.loc[idx_c]
+    row_c = raw_test.iloc[idx_c]
     tx_c = {
         "step": int(row_c["step"]),
-        "type": "CASH_OUT",
+        "type": str(row_c["type"]),
         "amount": float(row_c["amount"]),
-        "nameOrig": "C_BORDERLINE",
+        "nameOrig": str(row_c["nameOrig"]),
         "oldbalanceOrg": float(row_c["oldbalanceOrg"]),
         "newbalanceOrig": float(row_c["newbalanceOrig"]),
-        "nameDest": "M_BORDERLINE",
+        "nameDest": str(row_c["nameDest"]),
         "oldbalanceDest": float(row_c["oldbalanceDest"]),
         "newbalanceDest": float(row_c["newbalanceDest"]),
     }
-    row_score_c = float(test_probs[idx_c])
-    diff_c = abs(row_score_c - thresh)
     res_c = predictor.predict_one(tx_c)
-    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold)")
+    row_score_c = float(res_c["prediction_proba"])
+    diff_c = abs(row_score_c - thresh)
+    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold in held-out test)")
     print(f"Row ID: {idx_c}")
     print(f"True Label: {int(row_c['isFraud'])} ({'Fraud' if row_c['isFraud']==1 else 'Legitimate'})")
     print(f"Active Threshold: {thresh:.4f}")
     print(f"Model Score (Probability): {row_score_c:.4f}")
     print(f"|Score - Threshold|: {diff_c:.6f}")
-    print(f"Decision: {'FLAGGED FRAUD' if row_score_c >= thresh else 'CLEARED LEGITIMATE'}")
+    print(f"Decision: {'FLAGGED FRAUD' if res_c['is_fraud'] else 'CLEARED LEGITIMATE'}")
     
     pass_c = row_score_c is not None and isinstance(res_c['is_fraud'], bool)
     checks_passed.append(("Scenario C (Borderline Case Handled)", pass_c))
@@ -217,11 +223,11 @@ def run_demo():
     # RAG Chatbot Query Over SQLite Prediction Log
     # -------------------------------------------------------------------------
     print("\n--- STEP 3: RAG Chatbot Audit Query Over Prediction Log ---")
-    query = "Why was the recent transfer from C_MULE_RING_10 flagged as fraud?"
+    query = f"Why was the recent transfer from {tx_a['nameOrig']} flagged as fraud?"
     print(f"Analyst Query: '{query}'")
     chat_ans = answer_analyst_query(query)
     print(f"RAG Response:\n{chat_ans}")
-    pass_rag = len(chat_ans) > 20 and ("C_MULE_RING_10" in chat_ans or "FLAGGED" in chat_ans.upper() or "FRAUD" in chat_ans.upper())
+    pass_rag = len(chat_ans) > 20 and (str(tx_a["nameOrig"]) in chat_ans or "FLAGGED" in chat_ans.upper() or "FRAUD" in chat_ans.upper())
     checks_passed.append(("RAG Prediction Log Query", pass_rag))
 
     # -------------------------------------------------------------------------

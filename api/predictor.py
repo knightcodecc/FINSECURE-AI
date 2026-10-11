@@ -80,6 +80,29 @@ class InferenceGraphState:
                 comp_size[node] = size
         self._cached_component_size = comp_size
 
+    def warm_from_history(self, history_df: pd.DataFrame):
+        """
+        Warm real-time inference graph state from historical transactions (e.g. training set).
+        Computes initial degrees, PageRank, connected component sizes, and fraud exposures.
+        """
+        from src.graph_features import build_graph, compute_node_features
+        self.G = build_graph(history_df)
+        self.tx_count = len(history_df)
+        node_feats = compute_node_features(history_df, self.G)
+        if not node_feats.empty:
+            nfi = node_feats.set_index("node")
+            self._cached_in_degree = nfi["in_degree"].to_dict()
+            self._cached_out_degree = nfi["out_degree"].to_dict()
+            self._cached_pagerank = nfi["pagerank"].to_dict()
+            self._cached_component_size = nfi["component_size"].to_dict()
+            self._cached_fraud_exposure = nfi["fraud_exposure"].to_dict()
+        else:
+            self._cached_in_degree = {}
+            self._cached_out_degree = {}
+            self._cached_pagerank = {}
+            self._cached_component_size = {}
+            self._cached_fraud_exposure = {}
+
     def get_node_features(self, node: str) -> Dict[str, float]:
         """Extract graph features for a node with neutral cold-start defaults."""
         if not self.G.has_node(node):
@@ -91,18 +114,20 @@ class InferenceGraphState:
                 "fraud_exposure": 0.0,
             }
 
-        in_deg = float(self.G.in_degree(node))
-        out_deg = float(self.G.out_degree(node))
+        in_deg = float(getattr(self, "_cached_in_degree", {}).get(node, self.G.in_degree(node)))
+        out_deg = float(getattr(self, "_cached_out_degree", {}).get(node, self.G.out_degree(node)))
         pr = float(self._cached_pagerank.get(node, 0.0))
         comp_s = float(self._cached_component_size.get(node, 1.0))
 
-        # Fraud exposure: fraction of incident edges with historical confirmed fraud
-        incident_edges = list(self.G.in_edges(node, data=True)) + list(self.G.out_edges(node, data=True))
-        if not incident_edges:
-            fraud_exp = 0.0
+        if hasattr(self, "_cached_fraud_exposure") and node in self._cached_fraud_exposure:
+            fraud_exp = float(self._cached_fraud_exposure[node])
         else:
-            fraud_edges = sum(1 for *_x, data in incident_edges if data.get("fraud_count", 0) > 0)
-            fraud_exp = float(fraud_edges / len(incident_edges))
+            incident_edges = list(self.G.in_edges(node, data=True)) + list(self.G.out_edges(node, data=True))
+            if not incident_edges:
+                fraud_exp = 0.0
+            else:
+                fraud_edges = sum(1 for *_x, data in incident_edges if data.get("fraud_count", 0) > 0)
+                fraud_exp = float(fraud_edges / len(incident_edges))
 
         return {
             "in_degree": in_deg,
@@ -128,6 +153,21 @@ class Predictor:
         # Real-time inference graph state
         self.graph_state = InferenceGraphState()
 
+    def warm_graph_on_train(self, history_df: Optional[pd.DataFrame] = None):
+        """Warm the inference graph on training history transactions (step <= 420)."""
+        if history_df is None:
+            if Path("data/paysim_synth.csv").exists():
+                df_raw = pd.read_csv("data/paysim_synth.csv")
+            elif Path("data/transactions_with_graph_features.parquet").exists():
+                df_raw = pd.read_parquet("data/transactions_with_graph_features.parquet")
+            elif Path("data/paysim.csv").exists():
+                df_raw = pd.read_csv("data/paysim.csv")
+            else:
+                return
+            history_df = df_raw[df_raw["step"] <= 420].copy()
+            
+        self.graph_state.warm_from_history(history_df)
+
     def _reload_metadata_if_needed(self):
         if METADATA_PATH.exists():
             try:
@@ -151,6 +191,12 @@ class Predictor:
         3. Create 13 engineered tabular features
         4. Scale numerical features using scaler.joblib
         """
+        amount = float(raw_tx.get("amount", 0.0))
+        assert amount > 0, (
+            f"Serving assertion failed: raw rupee amount must be strictly positive (> 0), got {amount}. "
+            "Never pass scaled/z-score values to predict_one!"
+        )
+
         orig_id = str(raw_tx.get("nameOrig", ""))
         dest_id = str(raw_tx.get("nameDest", ""))
 
@@ -159,7 +205,7 @@ class Predictor:
 
         tx_dict = {
             "step": int(raw_tx.get("step", 1)),
-            "amount": float(raw_tx.get("amount", 0.0)),
+            "amount": amount,
             "oldbalanceOrg": float(raw_tx.get("oldbalanceOrg", 0.0)),
             "newbalanceOrig": float(raw_tx.get("newbalanceOrig", 0.0)),
             "oldbalanceDest": float(raw_tx.get("oldbalanceDest", 0.0)),
@@ -270,10 +316,13 @@ class Predictor:
 _PREDICTOR: Predictor | None = None
 
 
-def get_predictor() -> Predictor:
+def get_predictor(warm: bool = True) -> Predictor:
     global _PREDICTOR
     if _PREDICTOR is None:
         _PREDICTOR = Predictor()
+        if warm:
+            _PREDICTOR.warm_graph_on_train()
     else:
         _PREDICTOR._reload_metadata_if_needed()
     return _PREDICTOR
+

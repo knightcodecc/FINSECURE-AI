@@ -70,7 +70,9 @@ def evaluate_variant(
         subsample=0.8,
         colsample_bytree=0.8,
         scale_pos_weight=scale_pos_weight,
-        random_state=rng_seed,
+        random_state=42,
+        tree_method="hist",
+        n_jobs=4,
         eval_metric="logloss",
         early_stopping_rounds=30,
     )
@@ -165,6 +167,8 @@ def evaluate_variant(
         "pct_caught": cost_res_cost["pct_amount_caught"],
         "total_cost_cost_opt": cost_res_cost["total_cost"],
         "clf": clf,
+        "cols": cols,
+        "val_prob": val_prob,
         "test_prob": test_prob,
     }
 
@@ -259,9 +263,9 @@ def train_and_evaluate():
     for fp_c in [50.0, 500.0, 2000.0, 5000.0]:
         fe_cost_fp = float(fp_c * np.sum(y_test == 0))
         for name, cols in variants:
-            clf = results[[r['name'] for r in results].index(name)]['clf']
-            val_prob = clf.predict_proba(val_df[cols])[:, 1]
-            test_prob = clf.predict_proba(test_df[cols])[:, 1]
+            r = results[[res['name'] for res in results].index(name)]
+            val_prob = r['val_prob']
+            test_prob = r['test_prob']
             _, _, c_opt = threshold_sweep(y_val, val_prob, amt_val, fp_cost=fp_c)
             eval_c = expected_cost(y_test, test_prob, c_opt, amt_test, fp_cost=fp_c)
             ar = (eval_c['tp'] + eval_c['fp']) / len(y_test) * 100.0
@@ -279,9 +283,9 @@ def train_and_evaluate():
 
     for b_pct in [0.01, 0.02, 0.05]:
         for name, cols in variants:
-            clf = results[[r['name'] for r in results].index(name)]['clf']
-            val_prob = clf.predict_proba(val_df[cols])[:, 1]
-            test_prob = clf.predict_proba(test_df[cols])[:, 1]
+            r = results[[res['name'] for res in results].index(name)]
+            val_prob = r['val_prob']
+            test_prob = r['test_prob']
             t_budget = float(np.quantile(val_prob, 1.0 - b_pct)) if len(val_prob) > 0 else 0.5
             eval_b = expected_cost(y_test, test_prob, t_budget, amt_test)
             ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
@@ -327,6 +331,35 @@ def train_and_evaluate():
         "cost_savings_vs_flag_everything_rs": float(flag_everything_cost - deployed["total_cost_cost_opt"]),
     }
     joblib.dump(metadata, METADATA_PATH)
+
+    # Save ablation predictions and thresholds for real_data_report.py reproducibility
+    ablation_joblib_data = {
+        r["name"]: {
+            "val_prob": r["val_prob"],
+            "test_prob": r["test_prob"],
+            "f2_opt_thresh": float(r["f2_opt_thresh"]),
+            "cost_opt_thresh": float(r["cost_opt_thresh"]),
+            "cols": r["cols"],
+        }
+        for r in results
+    }
+    joblib.dump(ablation_joblib_data, Path("models/ablation_preds.joblib"))
+
+    # Save .npz format
+    npz_dict = {}
+    for r in results:
+        v_key = r["name"].replace(" ", "_").replace("(", "").replace(")", "").replace("+", "plus").replace("-", "_")
+        npz_dict[f"{v_key}_val_prob"] = r["val_prob"]
+        npz_dict[f"{v_key}_test_prob"] = r["test_prob"]
+        npz_dict[f"{v_key}_thresholds"] = np.array([r["f2_opt_thresh"], r["cost_opt_thresh"]])
+    np.savez_compressed(Path("models/ablation_preds.npz"), **npz_dict)
+
+    # Save .parquet format (test probability dataframe)
+    test_preds_df = pd.DataFrame({"y_true": y_test, "amount_test": amt_test})
+    for r in results:
+        test_preds_df[r["name"]] = r["test_prob"]
+    test_preds_df.to_parquet(Path("models/ablation_preds.parquet"), index=False)
+    print("Saved ablation prediction arrays to models/ablation_preds.{npz,joblib,parquet}")
 
     print("\n=== SAVED MODEL METADATA CONTENTS ===")
     for k, v in metadata.items():

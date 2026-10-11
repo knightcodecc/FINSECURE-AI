@@ -1,51 +1,49 @@
-﻿===========================================================================
+===========================================================================
         FinSecure AI v2 ù END-TO-END DEMONSTRATION & AUDIT RUN        
 ===========================================================================
 
-[SERVING DATA HYGIENE]: Model version mismatch detected (old='v_legacy_v1_0', new='v_3a1b104ac1b8').
-[MODEL ARCHIVE SUCCESS]: Legacy predictions archived to SQLite table: 'predictions_archive_1791700395'
+[SERVING DATA HYGIENE]: Model version mismatch detected (old='v_legacy_v1_0', new='v_4b94596e9eec').
+[MODEL ARCHIVE SUCCESS]: Legacy predictions archived to SQLite table: 'predictions_archive_1791703931'
 
 --- SCENARIO A: Online Ring Fraud (Clean Test Row ID 60) ---
-[ALERT LOCAL LOG]: (HIGH_FRAUD_ALERT) {'nameOrig': 'C_MULE_RING_10', 'nameDest': 'M_HUB_CASHOUT_1', 'amount': -0.36261350141351556, 'prediction_proba': 0.7998518943786621, 'explanation': 'Transaction Flagged as Fraud with a fraud probability of 80.0% (threshold 1.7%). Primary risk drivers pushing toward fraud: TRANSFER Transaction Type (SHAP +1.727), Recipient Balance Discrepancy (SHAP +1.641). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -1.833).'}
+[ALERT LOCAL LOG]: (HIGH_FRAUD_ALERT) {'nameOrig': 'C_MULE_R', 'nameDest': 'M_HUB_CA', 'amount': 10978.45, 'prediction_proba': 0.9988510608673096, 'explanation': "Transaction Flagged as Fraud with a fraud probability of 99.9% (threshold 4.8%). Primary risk drivers pushing toward fraud: Sender's Connection to Previously Flagged Accounts (SHAP +4.124), Recipient's Connection to Previously Flagged Accounts (SHAP +2.775). Mitigating factors: Sender Balance Discrepancy (SHAP -0.633), CASH_OUT Transaction Type (SHAP -0.525)."}
 Selection Rule: First Clean-Test row matching mechanism=='MECH_B_RING' (Row ID: 60)
 True Label: 1 (Fraud)
 Decision: FLAGGED FRAUD
-Model Score (Probability): 0.7999 (Active Threshold: 0.0170)
+Model Score (Probability): 0.9989 (Active Threshold: 0.0484)
 Top 5 SHAP Features:
-  - Ratio of Amount to Sender Balance (amount_to_oldbalanceOrg_ratio): unscaled raw=-0.48, SHAP=-1.8330 (pushes_away_from_fraud)
-  - TRANSFER Transaction Type (type_TRANSFER): unscaled raw=1.00, SHAP=+1.7274 (pushes_toward_fraud)
-  - Recipient Balance Discrepancy (errorBalanceDest): unscaled raw=-0.20, SHAP=+1.6409 (pushes_toward_fraud)
-  - Recipient's Connection to Previously Flagged Accounts (dest_fraud_exposure): unscaled raw=1.00, SHAP=+1.2917 (pushes_toward_fraud)
-  - Recipient Net Balance Change (net_change_dest): unscaled raw=-0.16, SHAP=+0.9429 (pushes_toward_fraud)
-Grounded Explanation: Transaction Flagged as Fraud with a fraud probability of 80.0% (threshold 1.7%). Primary risk drivers pushing toward fraud: TRANSFER Transaction Type (SHAP +1.727), Recipient Balance Discrepancy (SHAP +1.641). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -1.833).
+  - Sender's Connection to Previously Flagged Accounts (orig_fraud_exposure): unscaled raw=0.99, SHAP=+4.1240 (pushes_toward_fraud)
+  - Recipient's Connection to Previously Flagged Accounts (dest_fraud_exposure): unscaled raw=0.99, SHAP=+2.7746 (pushes_toward_fraud)
+  - TRANSFER Transaction Type (type_TRANSFER): unscaled raw=1.00, SHAP=+1.8255 (pushes_toward_fraud)
+  - Sender Balance Discrepancy (errorBalanceOrig): unscaled raw=0.00, SHAP=-0.6330 (pushes_away_from_fraud)
+  - CASH_OUT Transaction Type (type_CASH_OUT): unscaled raw=0.00, SHAP=-0.5249 (pushes_away_from_fraud)
+Grounded Explanation: Transaction Flagged as Fraud with a fraud probability of 99.9% (threshold 4.8%). Primary risk drivers pushing toward fraud: Sender's Connection to Previously Flagged Accounts (SHAP +4.124), Recipient's Connection to Previously Flagged Accounts (SHAP +2.775). Mitigating factors: Sender Balance Discrepancy (SHAP -0.633), CASH_OUT Transaction Type (SHAP -0.525).
 
 --- SCENARIO B: Legitimate Cleared Transaction (Clean Test Row ID 0) ---
 Selection Rule: Clean-Test row index 0 (Standard Legitimate PAYMENT)
 True Label: 0 (Legitimate)
 Decision: CLEARED LEGITIMATE
-Model Score (Probability): 0.0123 (Active Threshold: 0.0170)
-Grounded Explanation: Transaction Cleared as Legitimate with a fraud probability of 1.2% (threshold 1.7%). Primary risk drivers pushing toward fraud: Recipient Balance Discrepancy (SHAP +2.249), Recipient Net Balance Change (SHAP +1.029). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -2.054), PAYMENT Transaction Type (SHAP -1.591).
+Model Score (Probability): 0.0082 (Active Threshold: 0.0484)
+Grounded Explanation: Transaction Cleared as Legitimate with a fraud probability of 0.8% (threshold 4.8%). Mitigating factors: Sender Balance Discrepancy (SHAP -1.225), Recipient Network Cluster Size (SHAP -0.805).
 
---- SCENARIO C: Borderline Case (Clean Test Row ID 9942) ---
-[ALERT LOCAL LOG]: (HIGH_FRAUD_ALERT) {'nameOrig': 'C_BORDERLINE', 'nameDest': 'M_BORDERLINE', 'amount': -0.12593144976751983, 'prediction_proba': 0.16144712269306183, 'explanation': 'Transaction Flagged as Fraud with a fraud probability of 16.1% (threshold 1.7%). Primary risk drivers pushing toward fraud: Recipient Balance Discrepancy (SHAP +2.335), Sender Balance Discrepancy (SHAP +1.558). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -3.760), Transaction Amount (SHAP -0.953).'}
-Selection Rule: Clean-Test row ID 9942 (Closest probability score to active threshold)
-Row ID: 9942
+--- SCENARIO C: Borderline Case (Clean Test Row ID 30858) ---
+Selection Rule: Clean-Test row ID 30858 (Closest probability score to active threshold in held-out test)
+Row ID: 30858
 True Label: 0 (Legitimate)
-Active Threshold: 0.0170
-Model Score (Probability): 0.0170
-|Score - Threshold|: 0.000005
-Decision: FLAGGED FRAUD
+Active Threshold: 0.0484
+Model Score (Probability): 0.0448
+|Score - Threshold|: 0.003524
+Decision: CLEARED LEGITIMATE
 
 --- STEP 3: RAG Chatbot Audit Query Over Prediction Log ---
-Analyst Query: 'Why was the recent transfer from C_MULE_RING_10 flagged as fraud?'
+Analyst Query: 'Why was the recent transfer from C_MULE_R flagged as fraud?'
 RAG Response:
-Recent flagged fraud cases under current model version (v_3a1b104ac1b8) and their primary SHAP reasons:
-- Transaction C_BORDERLINE -> M_BORDERLINE (Rs. -0.13, proba 16.1%): Transaction Flagged as Fraud with a fraud probability of 16.1% (threshold 1.7%). Primary risk drivers pushing toward fraud: Recipient Balance Discrepancy (SHAP +2.335), Sender Balance Discrepancy (SHAP +1.558). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -3.760), Transaction Amount (SHAP -0.953).
-- Transaction C_MULE_RING_10 -> M_HUB_CASHOUT_1 (Rs. -0.36, proba 80.0%): Transaction Flagged as Fraud with a fraud probability of 80.0% (threshold 1.7%). Primary risk drivers pushing toward fraud: TRANSFER Transaction Type (SHAP +1.727), Recipient Balance Discrepancy (SHAP +1.641). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -1.833).
+Recent flagged fraud cases under current model version (v_4b94596e9eec) and their primary SHAP reasons:
+- Transaction C_MULE_R -> M_HUB_CA (Rs. 10,978.45, proba 99.9%): Transaction Flagged as Fraud with a fraud probability of 99.9% (threshold 4.8%). Primary risk drivers pushing toward fraud: Sender's Connection to Previously Flagged Accounts (SHAP +4.124), Recipient's Connection to Previously Flagged Accounts (SHAP +2.775). Mitigating factors: Sender Balance Discrepancy (SHAP -0.633), CASH_OUT Transaction Type (SHAP -0.525).
 
 --- SCENARIO D: Triggering Concept Drift Simulation ---
 Drift Status: DRIFT_DETECTED
-Score PSI: 2.6648
+Score PSI: 3.0191
 Drifted Feature Count: 5
 Retrain Recommended Flag: True
 

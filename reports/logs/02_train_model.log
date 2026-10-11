@@ -1,129 +1,130 @@
-﻿Loading feature splits...
-
-=== SPLIT SIZES & FRAUD COUNTS ===
-Train split: 169,746 rows | Fraud: 2,999 (1.77%)
-Val split:   48,316 rows | Fraud: 910 (1.88%)
-Clean Test:  35,954 rows | Fraud: 622 (1.73%)
-
---- RUNNING FULL FEATURE GROUP ABLATION STUDY ON CLEAN TEST SPLIT ---
-
---- RAW VALIDATION SWEEP FOR VARIANT: Raw Numeric Only ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.4752 | ROC-AUC = 0.7613
-Validation Cost Sweep Min Row (idx=114): threshold=0.0605, total_cost=Rs. 2,340,069.56, fn_cost=Rs. 11,719.56, fp_cost=Rs. 2,328,350.00
-Validation F2 Sweep Max Row (idx=349): threshold=0.7248, f2_score=0.4724, recall=0.4495, precision=0.5936
-Selected Validation Thresholds: F2-Optimal = 0.7248 | Cost-Optimal = 0.0605
-[Raw Numeric Only            ] PR-AUC: 0.5135 (Base Rate: 0.0173) | ROC-AUC: 0.7741 | T_F2: 0.7248 | T_COST: 0.0605 (F2 Edge: NO | Cost Edge: NO) | Recall: 99.8% | Flag Rate: 98.2% | Ring Recall: 99.6% (CI: 99.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 1,744,369.50
-
---- RAW VALIDATION SWEEP FOR VARIANT: Raw + One-Hot Type ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.5121 | ROC-AUC = 0.9263
-Validation Cost Sweep Min Row (idx=178): threshold=0.0844, total_cost=Rs. 1,356,876.81, fn_cost=Rs. 358,476.81, fp_cost=Rs. 998,400.00
-Validation F2 Sweep Max Row (idx=362): threshold=0.8053, f2_score=0.4802, recall=0.5275, precision=0.3535
-Selected Validation Thresholds: F2-Optimal = 0.8053 | Cost-Optimal = 0.0844
-[Raw + One-Hot Type          ] PR-AUC: 0.5518 (Base Rate: 0.0173) | ROC-AUC: 0.9351 | T_F2: 0.8053 | T_COST: 0.0844 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.6% | Flag Rate: 43.1% | Ring Recall: 99.6% (CI: 98.8..100.0%, n=263) | Cost (Cost-Opt): Rs. 909,857.93
-
---- RAW VALIDATION SWEEP FOR VARIANT: No-Accounting-Error Tabular ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.5969 | ROC-AUC = 0.9313
-Validation Cost Sweep Min Row (idx=152): threshold=0.0314, total_cost=Rs. 1,398,076.81, fn_cost=Rs. 358,476.81, fp_cost=Rs. 1,039,600.00
-Validation F2 Sweep Max Row (idx=373): threshold=0.8657, f2_score=0.5570, recall=0.5143, precision=0.8342
-Selected Validation Thresholds: F2-Optimal = 0.8657 | Cost-Optimal = 0.0314
-[No-Accounting-Error Tabular ] PR-AUC: 0.6396 (Base Rate: 0.0173) | ROC-AUC: 0.9417 | T_F2: 0.8657 | T_COST: 0.0314 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.9% | Flag Rate: 44.9% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 933,073.79
-
---- RAW VALIDATION SWEEP FOR VARIANT: No-Accounting-Error + Graph ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.9604 | ROC-AUC = 0.9924
-Validation Cost Sweep Min Row (idx=177): threshold=0.0177, total_cost=Rs. 711,873.78, fn_cost=Rs. 559,423.78, fp_cost=Rs. 152,450.00
-Validation F2 Sweep Max Row (idx=345): threshold=0.6979, f2_score=0.9663, recall=0.9714, precision=0.9465
-Selected Validation Thresholds: F2-Optimal = 0.6979 | Cost-Optimal = 0.0177
-[No-Accounting-Error + Graph ] PR-AUC: 0.9140 (Base Rate: 0.0173) | ROC-AUC: 0.9870 | T_F2: 0.6979 | T_COST: 0.0177 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.1% | Flag Rate: 8.0% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 343,845.98
-
---- RAW VALIDATION SWEEP FOR VARIANT: Tabular Only (23 cols) ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.6072 | ROC-AUC = 0.9339
-Validation Cost Sweep Min Row (idx=164): threshold=0.0514, total_cost=Rs. 1,373,276.81, fn_cost=Rs. 358,476.81, fp_cost=Rs. 1,014,800.00
-Validation F2 Sweep Max Row (idx=378): threshold=0.8858, f2_score=0.5679, recall=0.5165, precision=0.9438
-Selected Validation Thresholds: F2-Optimal = 0.8858 | Cost-Optimal = 0.0514
-[Tabular Only (23 cols)      ] PR-AUC: 0.6516 (Base Rate: 0.0173) | ROC-AUC: 0.9415 | T_F2: 0.8858 | T_COST: 0.0514 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.7% | Flag Rate: 44.1% | Ring Recall: 99.6% (CI: 98.8..100.0%, n=263) | Cost (Cost-Opt): Rs. 920,724.63
-
---- RAW VALIDATION SWEEP FOR VARIANT: Tabular + Graph (33 cols) ---
-Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.9601 | ROC-AUC = 0.9927
-Validation Cost Sweep Min Row (idx=179): threshold=0.0170, total_cost=Rs. 658,365.08, fn_cost=Rs. 578,965.08, fp_cost=Rs. 79,400.00
-Validation F2 Sweep Max Row (idx=250): threshold=0.2014, f2_score=0.9766, recall=0.9813, precision=0.9582
-Selected Validation Thresholds: F2-Optimal = 0.2014 | Cost-Optimal = 0.0170
-[Tabular + Graph (33 cols)   ] PR-AUC: 0.9607 (Base Rate: 0.0173) | ROC-AUC: 0.9878 | T_F2: 0.2014 | T_COST: 0.0170 (F2 Edge: NO | Cost Edge: NO) | Recall: 97.6% | Flag Rate: 5.5% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 449,778.67
-
-=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===
-Variant                             | TP    | FP    | FN    | TN     | Alert Rate | Precision | Recall  | FN Cost (Rs.)     | FP Cost (Rs.)    | Total Cost (Rs.)  | Beats FN?  | Beats FE (>5%)?
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Raw Numeric Only (Near Flag-Everything) | 621   | 34678 | 1     | 654    |     98.18% |     1.76% |  99.84% | Rs. 10,469.50     | Rs. 1,733,900.00 | Rs. 1,744,369.50  | YES        | NO             
-Raw + One-Hot Type (Near Flag-Everything) | 613   | 14899 | 9     | 20433  |     43.14% |     3.95% |  98.55% | Rs. 164,907.93    | Rs. 744,950.00   | Rs. 909,857.93    | YES        | YES            
-No-Accounting-Error Tabular (Near Flag-Everything) | 615   | 15512 | 7     | 19820  |     44.85% |     3.81% |  98.87% | Rs. 157,473.79    | Rs. 775,600.00   | Rs. 933,073.79    | YES        | YES            
-No-Accounting-Error + Graph         | 610   | 2259  | 12    | 33073  |      7.98% |    21.26% |  98.07% | Rs. 230,895.98    | Rs. 112,950.00   | Rs. 343,845.98    | YES        | YES            
-Tabular Only (23 cols) (Near Flag-Everything) | 614   | 15230 | 8     | 20102  |     44.07% |     3.88% |  98.71% | Rs. 159,224.63    | Rs. 761,500.00   | Rs. 920,724.63    | YES        | YES            
-Tabular + Graph (33 cols)           | 607   | 1361  | 15    | 33971  |      5.47% |    30.84% |  97.59% | Rs. 381,728.67    | Rs. 68,050.00    | Rs. 449,778.67    | YES        | YES            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===
-FP Review Cost (Rs.) | Variant                      | T_COST   | Alert Rate | Recall  | Total Cost (Rs.) | Beats FN?  | Beats FE (>5%)?
----------------------------------------------------------------------------------------------------------------------------------------
-Rs. 50               | Raw Numeric Only             | 0.0605   |     98.18% |  99.84% | Rs. 1,744,369.50 | YES        | NO             
-Rs. 50               | Raw + One-Hot Type           | 0.0844   |     43.14% |  98.55% | Rs. 909,857.93 | YES        | YES            
-Rs. 50               | No-Accounting-Error Tabular  | 0.0314   |     44.85% |  98.87% | Rs. 933,073.79 | YES        | YES            
-Rs. 50               | No-Accounting-Error + Graph  | 0.0177   |      7.98% |  98.07% | Rs. 343,845.98 | YES        | YES            
-Rs. 50               | Tabular Only (23 cols)       | 0.0514   |     44.07% |  98.71% | Rs. 920,724.63 | YES        | YES            
-Rs. 50               | Tabular + Graph (33 cols)    | 0.0170   |      5.47% |  97.59% | Rs. 449,778.67 | YES        | YES            
-Rs. 500              | Raw Numeric Only             | 0.4347   |     12.29% |  60.45% | Rs. 11,635,549.12 | YES        | YES            
-Rs. 500              | Raw + One-Hot Type           | 0.1813   |     37.92% |  96.46% | Rs. 7,183,014.68 | YES        | YES            
-Rs. 500              | No-Accounting-Error Tabular  | 0.1343   |     39.53% |  97.43% | Rs. 7,409,717.30 | YES        | YES            
-Rs. 500              | No-Accounting-Error + Graph  | 0.5168   |      1.70% |  86.50% | Rs. 2,798,304.45 | YES        | YES            
-Rs. 500              | Tabular Only (23 cols)       | 0.2685   |     24.70% |  89.55% | Rs. 6,814,170.77 | YES        | YES            
-Rs. 500              | Tabular + Graph (33 cols)    | 0.1746   |      1.78% |  97.59% | Rs. 398,228.67 | YES        | YES            
-Rs. 2,000            | Raw Numeric Only             | 0.5831   |      4.09% |  54.82% | Rs. 13,522,318.02 | YES        | YES            
-Rs. 2,000            | Raw + One-Hot Type           | 0.5973   |      9.11% |  78.62% | Rs. 11,606,245.65 | YES        | YES            
-Rs. 2,000            | No-Accounting-Error Tabular  | 0.4430   |      9.80% |  81.83% | Rs. 10,670,660.71 | YES        | YES            
-Rs. 2,000            | No-Accounting-Error + Graph  | 0.6778   |      1.49% |  80.55% | Rs. 4,421,966.67 | YES        | YES            
-Rs. 2,000            | Tabular Only (23 cols)       | 0.4295   |      9.79% |  81.99% | Rs. 10,664,233.26 | YES        | YES            
-Rs. 2,000            | Tabular + Graph (33 cols)    | 0.2014   |      1.76% |  97.59% | Rs. 429,728.67 | YES        | YES            
-Rs. 5,000            | Raw Numeric Only             | 0.6912   |      1.78% |  50.32% | Rs. 14,561,238.00 | YES        | YES            
-Rs. 5,000            | Raw + One-Hot Type           | 0.7852   |      3.46% |  59.49% | Rs. 14,243,843.14 | YES        | YES            
-Rs. 5,000            | No-Accounting-Error Tabular  | 0.8590   |      1.22% |  55.47% | Rs. 11,304,791.44 | YES        | YES            
-Rs. 5,000            | No-Accounting-Error + Graph  | 0.6778   |      1.49% |  80.55% | Rs. 4,529,966.67 | YES        | YES            
-Rs. 5,000            | Tabular Only (23 cols)       | 0.8456   |      1.24% |  57.40% | Rs. 10,888,460.52 | YES        | YES            
-Rs. 5,000            | Tabular + Graph (33 cols)    | 0.2014   |      1.76% |  97.59% | Rs. 501,728.67 | YES        | YES            
----------------------------------------------------------------------------------------------------------------------------------------
-
-=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===
-Alert Budget %  | Variant                      | Threshold | Actual Alert %          | Overall Recall (95% CI)    | Ring Recall (n=263, 95% CI)    | Amount Caught (Rs.)
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-1.0           % | Raw Numeric Only             | 0.7777    |  0.99%                  | 45.34% [41.45..49.07%]     | 0.0% [0.0..0.0%]               | Rs. 21,124,930.89  
-1.0           % | Raw + One-Hot Type           | 0.9074    |  1.03%                  | 43.09% [38.76..46.81%]     | 3.0% [1.2..5.2%]               | Rs. 21,043,743.96  
-1.0           % | No-Accounting-Error Tabular  | 0.9098    |  1.00%                  | 53.86% [50.48..58.36%]     | 0.4% [0.0..1.3%]               | Rs. 24,308,326.44  
-1.0           % | No-Accounting-Error + Graph  | 0.9984    |  0.66% (score saturation) | 37.30% [32.97..40.94%]     | 34.6% [28.8..39.7%]            | Rs. 15,847,436.92  
-1.0           % | Tabular Only (23 cols)       | 0.9529    |  0.97%                  | 54.82% [51.48..58.82%]     | 0.0% [0.0..0.0%]               | Rs. 24,361,970.21  
-1.0           % | Tabular + Graph (33 cols)    | 0.9989    |  0.76% (score saturation) | 43.09% [38.92..46.96%]     | 26.6% [21.1..31.1%]            | Rs. 19,145,004.50  
-2.0           % | Raw Numeric Only             | 0.6771    |  1.97%                  | 50.80% [46.95..53.70%]     | 1.9% [0.4..3.5%]               | Rs. 22,480,771.56  
-2.0           % | Raw + One-Hot Type           | 0.8392    |  2.10%                  | 52.57% [48.92..56.20%]     | 11.8% [8.8..15.6%]             | Rs. 23,565,460.61  
-2.0           % | No-Accounting-Error Tabular  | 0.8028    |  2.12%                  | 59.81% [55.89..63.73%]     | 12.5% [8.8..16.1%]             | Rs. 25,818,660.87  
-2.0           % | No-Accounting-Error + Graph  | 0.5719    |  1.63%                  | 84.89% [81.96..87.68%]     | 72.2% [66.9..78.2%]            | Rs. 32,174,504.67  
-2.0           % | Tabular Only (23 cols)       | 0.7987    |  2.20%                  | 60.29% [56.89..64.28%]     | 10.6% [7.4..14.0%]             | Rs. 25,268,949.63  
-2.0           % | Tabular + Graph (33 cols)    | 0.1203    |  1.86%                  | 97.59% [96.29..98.67%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
-5.0           % | Raw Numeric Only             | 0.5566    |  4.91%                  | 55.95% [52.24..59.38%]     | 4.6% [2.1..7.1%]               | Rs. 24,407,470.51  
-5.0           % | Raw + One-Hot Type           | 0.7403    |  4.94%                  | 66.72% [63.67..70.21%]     | 35.4% [30.1..41.8%]            | Rs. 26,881,860.19  
-5.0           % | No-Accounting-Error Tabular  | 0.6900    |  5.32%                  | 70.26% [67.04..73.69%]     | 36.9% [31.7..41.6%]            | Rs. 27,682,209.68  
-5.0           % | No-Accounting-Error + Graph  | 0.0356    |  4.89%                  | 97.75% [96.54..98.88%]     | 99.6% [98.7..100.0%]           | Rs. 35,010,168.07  
-5.0           % | Tabular Only (23 cols)       | 0.7015    |  5.36%                  | 71.54% [68.09..75.20%]     | 38.0% [32.0..44.5%]            | Rs. 27,649,117.26  
-5.0           % | Tabular + Graph (33 cols)    | 0.0175    |  5.27%                  | 97.59% [96.27..98.71%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-=== SAVED MODEL METADATA CONTENTS ===
-  feature_names: ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest', 'orig_in_degree', 'orig_out_degree', 'orig_pagerank', 'orig_component_size', 'orig_fraud_exposure', 'dest_in_degree', 'dest_out_degree', 'dest_pagerank', 'dest_component_size', 'dest_fraud_exposure', 'type_CASH_IN', 'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER', 'errorBalanceOrig', 'errorBalanceDest', 'log_amount', 'account_drained', 'dest_balance_zero', 'orig_balance_zero', 'amount_to_oldbalanceOrg_ratio', 'amount_to_oldbalanceDest_ratio', 'hour_of_day', 'high_risk_hour', 'day_of_week', 'net_change_orig', 'net_change_dest']
-  f2_optimal_threshold: 0.201402
-  cost_optimal_threshold: 0.017033
-  active_threshold: 0.017033
-  active_strategy: cost_optimal
-  model_expected_cost_rs: 449778.670000
-  baseline_flag_nothing_cost_rs: 35357945.920000
-  baseline_flag_everything_cost_rs: 1766600.000000
-  cost_savings_vs_flag_nothing_rs: 34908167.250000
-  cost_savings_vs_flag_everything_rs: 1316821.330000
-======================================
-
-
-Saved report to reports\ablation_graph.md
+﻿Loading feature splits...
+
+=== SPLIT SIZES & FRAUD COUNTS ===
+Train split: 169,746 rows | Fraud: 2,999 (1.77%)
+Val split:   48,316 rows | Fraud: 910 (1.88%)
+Clean Test:  35,954 rows | Fraud: 622 (1.73%)
+
+--- RUNNING FULL FEATURE GROUP ABLATION STUDY ON CLEAN TEST SPLIT ---
+
+--- RAW VALIDATION SWEEP FOR VARIANT: Raw Numeric Only ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.4776 | ROC-AUC = 0.7616
+Validation Cost Sweep Min Row (idx=104): threshold=0.0404, total_cost=Rs. 2,347,694.10, fn_cost=Rs. 1,344.10, fp_cost=Rs. 2,346,350.00
+Validation F2 Sweep Max Row (idx=347): threshold=0.7114, f2_score=0.4818, recall=0.4637, precision=0.5710
+Selected Validation Thresholds: F2-Optimal = 0.7114 | Cost-Optimal = 0.0404
+[Raw Numeric Only            ] PR-AUC: 0.5139 (Base Rate: 0.0173) | ROC-AUC: 0.7812 | T_F2: 0.7114 | T_COST: 0.0404 (F2 Edge: NO | Cost Edge: NO) | Recall: 100.0% | Flag Rate: 98.9% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 1,746,550.00
+
+--- RAW VALIDATION SWEEP FOR VARIANT: Raw + One-Hot Type ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.5172 | ROC-AUC = 0.9272
+Validation Cost Sweep Min Row (idx=172): threshold=0.0701, total_cost=Rs. 1,368,402.18, fn_cost=Rs. 359,152.18, fp_cost=Rs. 1,009,250.00
+Validation F2 Sweep Max Row (idx=354): threshold=0.7650, f2_score=0.4819, recall=0.5956, precision=0.2733
+Selected Validation Thresholds: F2-Optimal = 0.7650 | Cost-Optimal = 0.0701
+[Raw + One-Hot Type          ] PR-AUC: 0.5570 (Base Rate: 0.0173) | ROC-AUC: 0.9358 | T_F2: 0.7650 | T_COST: 0.0701 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.7% | Flag Rate: 43.6% | Ring Recall: 99.6% (CI: 98.8..100.0%, n=263) | Cost (Cost-Opt): Rs. 912,774.63
+
+--- RAW VALIDATION SWEEP FOR VARIANT: No-Accounting-Error Tabular ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.6028 | ROC-AUC = 0.9304
+Validation Cost Sweep Min Row (idx=159): threshold=0.0404, total_cost=Rs. 1,394,907.20, fn_cost=Rs. 373,907.20, fp_cost=Rs. 1,021,000.00
+Validation F2 Sweep Max Row (idx=370): threshold=0.8456, f2_score=0.5584, recall=0.5253, precision=0.7469
+Selected Validation Thresholds: F2-Optimal = 0.8456 | Cost-Optimal = 0.0404
+[No-Accounting-Error Tabular ] PR-AUC: 0.6362 (Base Rate: 0.0173) | ROC-AUC: 0.9394 | T_F2: 0.8456 | T_COST: 0.0404 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.7% | Flag Rate: 44.2% | Ring Recall: 99.6% (CI: 98.8..100.0%, n=263) | Cost (Cost-Opt): Rs. 923,324.63
+
+--- RAW VALIDATION SWEEP FOR VARIANT: No-Accounting-Error + Graph ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.9615 | ROC-AUC = 0.9929
+Validation Cost Sweep Min Row (idx=229): threshold=0.1222, total_cost=Rs. 728,653.06, fn_cost=Rs. 696,153.06, fp_cost=Rs. 32,500.00
+Validation F2 Sweep Max Row (idx=339): threshold=0.6644, f2_score=0.9668, recall=0.9725, precision=0.9445
+Selected Validation Thresholds: F2-Optimal = 0.6644 | Cost-Optimal = 0.1222
+[No-Accounting-Error + Graph ] PR-AUC: 0.9080 (Base Rate: 0.0173) | ROC-AUC: 0.9874 | T_F2: 0.6644 | T_COST: 0.1222 (F2 Edge: NO | Cost Edge: NO) | Recall: 92.9% | Flag Rate: 3.0% | Ring Recall: 89.0% (CI: 85.1..92.6%, n=263) | Cost (Cost-Opt): Rs. 1,379,548.39
+
+--- RAW VALIDATION SWEEP FOR VARIANT: Tabular Only (23 cols) ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.6064 | ROC-AUC = 0.9337
+Validation Cost Sweep Min Row (idx=159): threshold=0.0407, total_cost=Rs. 1,387,426.81, fn_cost=Rs. 358,476.81, fp_cost=Rs. 1,028,950.00
+Validation F2 Sweep Max Row (idx=378): threshold=0.8858, f2_score=0.5679, recall=0.5165, precision=0.9438
+Selected Validation Thresholds: F2-Optimal = 0.8858 | Cost-Optimal = 0.0407
+[Tabular Only (23 cols)      ] PR-AUC: 0.6474 (Base Rate: 0.0173) | ROC-AUC: 0.9405 | T_F2: 0.8858 | T_COST: 0.0407 (F2 Edge: NO | Cost Edge: NO) | Recall: 98.9% | Flag Rate: 44.7% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 929,623.79
+
+--- RAW VALIDATION SWEEP FOR VARIANT: Tabular + Graph (33 cols) ---
+Validation Metrics: Base Rate = 0.0188 | PR-AUC = 0.9625 | ROC-AUC = 0.9924
+Validation Cost Sweep Min Row (idx=204): threshold=0.0484, total_cost=Rs. 698,685.30, fn_cost=Rs. 685,785.30, fp_cost=Rs. 12,900.00
+Validation F2 Sweep Max Row (idx=293): threshold=0.4094, f2_score=0.9766, recall=0.9802, precision=0.9622
+Selected Validation Thresholds: F2-Optimal = 0.4094 | Cost-Optimal = 0.0484
+[Tabular + Graph (33 cols)   ] PR-AUC: 0.9577 (Base Rate: 0.0173) | ROC-AUC: 0.9876 | T_F2: 0.4094 | T_COST: 0.0484 (F2 Edge: NO | Cost Edge: NO) | Recall: 97.6% | Flag Rate: 2.3% | Ring Recall: 100.0% (CI: 100.0..100.0%, n=263) | Cost (Cost-Opt): Rs. 393,128.67
+
+=== PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===
+Variant                             | TP    | FP    | FN    | TN     | Alert Rate | Precision | Recall  | FN Cost (Rs.)     | FP Cost (Rs.)    | Total Cost (Rs.)  | Beats FN?  | Beats FE (>5%)?
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Raw Numeric Only (Near Flag-Everything) | 622   | 34931 | 0     | 401    |     98.88% |     1.75% | 100.00% | Rs. 0.00          | Rs. 1,746,550.00 | Rs. 1,746,550.00  | YES        | NO             
+Raw + One-Hot Type (Near Flag-Everything) | 614   | 15071 | 8     | 20261  |     43.63% |     3.91% |  98.71% | Rs. 159,224.63    | Rs. 753,550.00   | Rs. 912,774.63    | YES        | YES            
+No-Accounting-Error Tabular (Near Flag-Everything) | 614   | 15282 | 8     | 20050  |     44.21% |     3.86% |  98.71% | Rs. 159,224.63    | Rs. 764,100.00   | Rs. 923,324.63    | YES        | YES            
+No-Accounting-Error + Graph         | 578   | 496   | 44    | 34836  |      2.99% |    53.82% |  92.93% | Rs. 1,354,748.39  | Rs. 24,800.00    | Rs. 1,379,548.39  | YES        | YES            
+Tabular Only (23 cols) (Near Flag-Everything) | 615   | 15443 | 7     | 19889  |     44.66% |     3.83% |  98.87% | Rs. 157,473.79    | Rs. 772,150.00   | Rs. 929,623.79    | YES        | YES            
+Tabular + Graph (33 cols)           | 607   | 228   | 15    | 35104  |      2.32% |    72.69% |  97.59% | Rs. 381,728.67    | Rs. 11,400.00    | Rs. 393,128.67    | YES        | YES            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+=== COST SENSITIVITY TABLE FOR FP REVIEW COSTS IN {50, 500, 2000, 5000} ===
+FP Review Cost (Rs.) | Variant                      | T_COST   | Alert Rate | Recall  | Total Cost (Rs.) | Beats FN?  | Beats FE (>5%)?
+---------------------------------------------------------------------------------------------------------------------------------------
+Rs. 50               | Raw Numeric Only             | 0.0404   |     98.88% | 100.00% | Rs. 1,746,550.00 | YES        | NO             
+Rs. 50               | Raw + One-Hot Type           | 0.0701   |     43.63% |  98.71% | Rs. 912,774.63 | YES        | YES            
+Rs. 50               | No-Accounting-Error Tabular  | 0.0404   |     44.21% |  98.71% | Rs. 923,324.63 | YES        | YES            
+Rs. 50               | No-Accounting-Error + Graph  | 0.1222   |      2.99% |  92.93% | Rs. 1,379,548.39 | YES        | YES            
+Rs. 50               | Tabular Only (23 cols)       | 0.0407   |     44.66% |  98.87% | Rs. 929,623.79 | YES        | YES            
+Rs. 50               | Tabular + Graph (33 cols)    | 0.0484   |      2.32% |  97.59% | Rs. 393,128.67 | YES        | YES            
+Rs. 500              | Raw Numeric Only             | 0.4713   |      9.13% |  59.16% | Rs. 11,464,312.82 | YES        | YES            
+Rs. 500              | Raw + One-Hot Type           | 0.3423   |     20.46% |  86.98% | Rs. 6,617,602.89 | YES        | YES            
+Rs. 500              | No-Accounting-Error Tabular  | 0.2014   |     32.79% |  93.25% | Rs. 7,463,394.49 | YES        | YES            
+Rs. 500              | No-Accounting-Error + Graph  | 0.4631   |      1.75% |  86.33% | Rs. 3,373,342.73 | YES        | YES            
+Rs. 500              | Tabular Only (23 cols)       | 0.2484   |     27.65% |  91.64% | Rs. 7,052,692.74 | YES        | YES            
+Rs. 500              | Tabular + Graph (33 cols)    | 0.1611   |      1.77% |  97.43% | Rs. 434,617.34 | YES        | YES            
+Rs. 2,000            | Raw Numeric Only             | 0.6486   |      2.33% |  52.57% | Rs. 13,188,084.20 | YES        | YES            
+Rs. 2,000            | Raw + One-Hot Type           | 0.6241   |      8.44% |  76.37% | Rs. 11,511,647.37 | YES        | YES            
+Rs. 2,000            | No-Accounting-Error Tabular  | 0.5388   |      7.79% |  77.65% | Rs. 10,808,099.36 | YES        | YES            
+Rs. 2,000            | No-Accounting-Error + Graph  | 0.6644   |      1.45% |  78.46% | Rs. 5,281,993.61 | YES        | YES            
+Rs. 2,000            | Tabular Only (23 cols)       | 0.4208   |     10.32% |  82.48% | Rs. 11,017,277.19 | YES        | YES            
+Rs. 2,000            | Tabular + Graph (33 cols)    | 0.4094   |      1.59% |  88.91% | Rs. 2,351,638.97 | YES        | YES            
+Rs. 5,000            | Raw Numeric Only             | 0.6778   |      1.88% |  51.29% | Rs. 14,141,297.47 | YES        | YES            
+Rs. 5,000            | Raw + One-Hot Type           | 0.8456   |      1.88% |  51.77% | Rs. 13,720,482.95 | YES        | YES            
+Rs. 5,000            | No-Accounting-Error Tabular  | 0.8120   |      2.00% |  58.84% | Rs. 11,962,511.66 | YES        | YES            
+Rs. 5,000            | No-Accounting-Error + Graph  | 0.7114   |      1.38% |  75.88% | Rs. 5,921,073.46 | YES        | YES            
+Rs. 5,000            | Tabular Only (23 cols)       | 0.8456   |      1.20% |  56.59% | Rs. 11,010,613.37 | YES        | YES            
+Rs. 5,000            | Tabular + Graph (33 cols)    | 0.4094   |      1.59% |  88.91% | Rs. 2,405,638.97 | YES        | YES            
+---------------------------------------------------------------------------------------------------------------------------------------
+
+=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===
+Alert Budget %  | Variant                      | Threshold | Actual Alert %          | Overall Recall (95% CI)    | Ring Recall (n=263, 95% CI)    | Amount Caught (Rs.)
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1.0           % | Raw Numeric Only             | 0.7771    |  0.97%                  | 45.02% [41.45..48.67%]     | 0.0% [0.0..0.0%]               | Rs. 21,319,407.85  
+1.0           % | Raw + One-Hot Type           | 0.9073    |  1.03%                  | 44.05% [39.67..47.91%]     | 1.9% [0.4..3.6%]               | Rs. 20,845,497.57  
+1.0           % | No-Accounting-Error Tabular  | 0.9073    |  1.00%                  | 54.34% [50.81..58.53%]     | 0.4% [0.0..1.3%]               | Rs. 24,333,838.17  
+1.0           % | No-Accounting-Error + Graph  | 0.9985    |  0.64% (score saturation) | 36.17% [32.66..39.97%]     | 33.8% [27.9..40.1%]            | Rs. 15,916,778.84  
+1.0           % | Tabular Only (23 cols)       | 0.9357    |  0.98%                  | 54.98% [51.64..59.15%]     | 0.0% [0.0..0.0%]               | Rs. 24,372,778.92  
+1.0           % | Tabular + Graph (33 cols)    | 0.9990    |  0.68% (score saturation) | 38.91% [35.00..42.56%]     | 22.8% [18.2..26.9%]            | Rs. 18,454,019.72  
+2.0           % | Raw Numeric Only             | 0.6713    |  1.97%                  | 51.45% [47.27..54.71%]     | 1.5% [0.4..3.0%]               | Rs. 23,024,504.50  
+2.0           % | Raw + One-Hot Type           | 0.8386    |  2.00%                  | 52.25% [48.50..56.39%]     | 10.6% [7.5..15.2%]             | Rs. 23,501,353.27  
+2.0           % | No-Accounting-Error Tabular  | 0.8023    |  2.21%                  | 59.49% [55.58..63.40%]     | 11.4% [7.6..14.7%]             | Rs. 25,256,215.98  
+2.0           % | No-Accounting-Error + Graph  | 0.5441    |  1.64%                  | 84.41% [81.49..87.01%]     | 70.3% [64.1..75.1%]            | Rs. 31,599,339.76  
+2.0           % | Tabular Only (23 cols)       | 0.7951    |  2.30%                  | 60.61% [56.95..64.74%]     | 11.8% [8.0..15.3%]             | Rs. 25,562,728.21  
+2.0           % | Tabular + Graph (33 cols)    | 0.1209    |  1.85%                  | 97.59% [96.29..98.67%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
+5.0           % | Raw Numeric Only             | 0.5505    |  4.94%                  | 55.95% [51.96..59.35%]     | 5.3% [2.7..8.0%]               | Rs. 24,430,662.00  
+5.0           % | Raw + One-Hot Type           | 0.7386    |  4.96%                  | 64.79% [61.12..68.51%]     | 31.2% [25.6..37.5%]            | Rs. 26,461,573.79  
+5.0           % | No-Accounting-Error Tabular  | 0.6881    |  5.22%                  | 70.10% [66.66..72.83%]     | 36.1% [30.9..41.9%]            | Rs. 27,833,018.05  
+5.0           % | No-Accounting-Error + Graph  | 0.0366    |  4.88%                  | 97.91% [96.71..99.03%]     | 100.0% [100.0..100.0%]         | Rs. 35,016,235.09  
+5.0           % | Tabular Only (23 cols)       | 0.7055    |  5.29%                  | 70.90% [66.99..74.60%]     | 36.1% [30.4..42.3%]            | Rs. 27,664,441.93  
+5.0           % | Tabular + Graph (33 cols)    | 0.0177    |  5.37%                  | 97.75% [96.45..98.89%]     | 100.0% [100.0..100.0%]         | Rs. 34,981,294.73  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Saved ablation prediction arrays to models/ablation_preds.{npz,joblib,parquet}
+
+=== SAVED MODEL METADATA CONTENTS ===
+  feature_names: ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest', 'orig_in_degree', 'orig_out_degree', 'orig_pagerank', 'orig_component_size', 'orig_fraud_exposure', 'dest_in_degree', 'dest_out_degree', 'dest_pagerank', 'dest_component_size', 'dest_fraud_exposure', 'type_CASH_IN', 'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER', 'errorBalanceOrig', 'errorBalanceDest', 'log_amount', 'account_drained', 'dest_balance_zero', 'orig_balance_zero', 'amount_to_oldbalanceOrg_ratio', 'amount_to_oldbalanceDest_ratio', 'hour_of_day', 'high_risk_hour', 'day_of_week', 'net_change_orig', 'net_change_dest']
+  f2_optimal_threshold: 0.409414
+  cost_optimal_threshold: 0.048361
+  active_threshold: 0.048361
+  active_strategy: cost_optimal
+  model_expected_cost_rs: 393128.670000
+  baseline_flag_nothing_cost_rs: 35357945.920000
+  baseline_flag_everything_cost_rs: 1766600.000000
+  cost_savings_vs_flag_nothing_rs: 34964817.250000
+  cost_savings_vs_flag_everything_rs: 1373471.330000
+======================================
+
+
+Saved report to reports\ablation_graph.md

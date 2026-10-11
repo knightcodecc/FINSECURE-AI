@@ -1,7 +1,7 @@
-﻿=== SHAP ADDITIVITY VERIFICATION ===
-XGBoost version: 3.2.0
-SHAP version:    0.51.0
-Sampled 200 rows: 40 fraud rows, 160 non-fraud rows
-Base Value (margin space): 0.293862
-Max Absolute Additivity Difference |base + sum(SHAP) - margin_predict|: 4.29153442e-06
-Additivity Status (tolerance < 1e-4): PASS
+=== SHAP ADDITIVITY VERIFICATION ===
+XGBoost version: 3.2.0
+SHAP version:    0.51.0
+Sampled 200 rows: 40 fraud rows, 160 non-fraud rows
+Base Value (margin space): 0.294676
+Max Absolute Additivity Difference |base + sum(SHAP) - margin_predict|: 5.24520874e-06
+Additivity Status (tolerance < 1e-4): PASS

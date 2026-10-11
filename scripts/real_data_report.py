@@ -152,42 +152,26 @@ def main():
     print(f"{'Variant':<35} | {'TP':<5} | {'FP':<5} | {'FN':<5} | {'TN':<6} | {'Alert Rate':<10} | {'Precision':<9} | {'Recall':<7} | {'FN Cost (Rs.)':<17} | {'FP Cost (Rs.)':<16} | {'Total Cost (Rs.)':<17} | {'Beats FN?':<10} | {'Beats FE (>5%)?':<15}")
     print("-" * 180)
 
-    models_dict = {}
+    ablation_joblib_path = Path("models/ablation_preds.joblib")
+    if not ablation_joblib_path.exists():
+        raise FileNotFoundError("models/ablation_preds.joblib missing. Please run src/train_model.py first.")
+    ablation_data = joblib.load(ablation_joblib_path)
 
     for v_name, v_cols in variants:
         if not v_cols:
             continue
-        X_tr = train_df[v_cols]
-        y_tr = train_df["isFraud"].values
-        X_va = val_df[v_cols]
-        X_te = test_df[v_cols]
-
-        model = xgb.XGBClassifier(
-            n_estimators=300,
-            max_depth=6,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            scale_pos_weight=scale_pos_weight,
-            random_state=42,
-            eval_metric="logloss",
-            early_stopping_rounds=30,
-        )
-        model.fit(X_tr, y_tr, eval_set=[(X_va, y_val)], verbose=False)
-        models_dict[v_name] = model
-
-        p_va = model.predict_proba(X_va)[:, 1]
-        p_te = model.predict_proba(X_te)[:, 1]
-
-        from src.cost_sensitive_eval import threshold_sweep
-        _, f2_opt, cost_opt = threshold_sweep(y_val, p_va, amounts_val)
+        v_entry = ablation_data[v_name]
+        p_va = v_entry["val_prob"]
+        p_te = v_entry["test_prob"]
+        f2_opt = v_entry["f2_opt_thresh"]
+        cost_opt = v_entry["cost_opt_thresh"]
 
         f2_edge = (f2_opt <= 1e-4) or (f2_opt >= 0.9999)
         cost_edge = (cost_opt <= 1e-4) or (cost_opt >= 0.9999)
 
         pr_auc = average_precision_score(y_test, p_te)
         roc_auc = roc_auc_score(y_test, p_te)
-        pr_ci, cost_ci = bootstrap_pr_auc_and_cost_ci(y_test, p_te, cost_opt, amounts_test)
+        pr_ci, cost_ci = bootstrap_pr_auc_and_cost_ci(y_test, p_te, cost_opt, amounts_test, seed=42)
 
         formatted_row = format_cost_table_row(
             variant_name=v_name,
@@ -243,9 +227,9 @@ def main():
         for v_name, v_cols in variants:
             if not v_cols:
                 continue
-            m = models_dict[v_name]
-            p_va = m.predict_proba(val_df[v_cols])[:, 1]
-            p_te = m.predict_proba(test_df[v_cols])[:, 1]
+            v_entry = ablation_data[v_name]
+            p_va = v_entry["val_prob"]
+            p_te = v_entry["test_prob"]
             _, _, c_opt = threshold_sweep(y_val, p_va, amounts_val, fp_cost=fp_c)
             eval_c = expected_cost(y_test, p_te, c_opt, amounts_test, fp_cost=fp_c)
             ar = (eval_c['tp'] + eval_c['fp']) / len(y_test) * 100.0
@@ -259,6 +243,7 @@ def main():
     print("-" * 165)
     ring_mask = (test_df["mechanism"] == "MECH_B_RING").values if "mechanism" in test_df.columns else np.zeros(len(test_df), dtype=bool)
     n_ring = int(np.sum(ring_mask))
+    rng = np.random.RandomState(42)
 
     budget_results = {}
 
@@ -267,9 +252,9 @@ def main():
         for v_name, v_cols in variants:
             if not v_cols:
                 continue
-            m = models_dict[v_name]
-            p_va = m.predict_proba(val_df[v_cols])[:, 1]
-            p_te = m.predict_proba(test_df[v_cols])[:, 1]
+            v_entry = ablation_data[v_name]
+            p_va = v_entry["val_prob"]
+            p_te = v_entry["test_prob"]
             t_budget = float(np.quantile(p_va, 1.0 - b_pct)) if len(p_va) > 0 else 0.5
             eval_b = expected_cost(y_test, p_te, t_budget, amounts_test)
             ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
@@ -277,7 +262,19 @@ def main():
             sat_str = " (score saturation)" if ar < (b_pct * 100.0 * 0.8) else ""
             ar_display = f"{ar:>5.2f}%{sat_str}"
 
-            rec_ci, ring_ci = bootstrap_budget_recall_ci(y_test, p_te, t_budget, ring_mask)
+            boot_rec, boot_ring = [], []
+            n_samples = len(y_test)
+            for _ in range(200):
+                idx = rng.randint(0, n_samples, size=n_samples)
+                f_idx = idx[y_test[idx] == 1]
+                if len(f_idx) > 0:
+                    boot_rec.append(np.mean(p_te[f_idx] >= t_budget))
+                r_idx = idx[ring_mask[idx]]
+                if len(r_idx) > 0:
+                    boot_ring.append(np.mean(p_te[r_idx] >= t_budget))
+            rec_ci = (float(np.percentile(boot_rec, 2.5)), float(np.percentile(boot_rec, 97.5))) if boot_rec else (eval_b['recall'], eval_b['recall'])
+            ring_ci = (float(np.percentile(boot_ring, 2.5)), float(np.percentile(boot_ring, 97.5))) if boot_ring else (0.0, 0.0)
+
             ring_rec = float(np.mean(p_te[ring_mask] >= t_budget)) if n_ring > 0 else 0.0
             rec_str = f"{eval_b['recall']*100:.2f}% [{rec_ci[0]*100:.2f}..{rec_ci[1]*100:.2f}%]"
             ring_str = f"{ring_rec*100:.1f}% [{ring_ci[0]*100:.1f}..{ring_ci[1]*100:.1f}%]" if n_ring > 0 else "N/A"

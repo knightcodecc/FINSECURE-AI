@@ -19,6 +19,8 @@ from typing import Dict, List, Any
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from unittest.mock import MagicMock
+sys.modules["cv2"] = MagicMock()
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
