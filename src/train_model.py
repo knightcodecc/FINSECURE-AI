@@ -271,8 +271,12 @@ def train_and_evaluate():
     print("-" * 135)
 
     print("\n=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===")
-    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<15} | {'Recall':<8} | {'Amount Caught (Rs.)':<18}")
-    print("-" * 105)
+    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<23} | {'Overall Recall (95% CI)':<26} | {'Ring Recall (n=263, 95% CI)':<30} | {'Amount Caught (Rs.)':<18}")
+    print("-" * 165)
+    ring_mask = (test_df["mechanism"] == "MECH_B_RING").values if "mechanism" in test_df.columns else np.zeros(len(test_df), dtype=bool)
+    n_ring = int(np.sum(ring_mask))
+    rng = np.random.RandomState(42)
+
     for b_pct in [0.01, 0.02, 0.05]:
         for name, cols in variants:
             clf = results[[r['name'] for r in results].index(name)]['clf']
@@ -281,8 +285,29 @@ def train_and_evaluate():
             t_budget = float(np.quantile(val_prob, 1.0 - b_pct)) if len(val_prob) > 0 else 0.5
             eval_b = expected_cost(y_test, test_prob, t_budget, amt_test)
             ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
-            print(f"{b_pct*100:<14.1f}% | {name:<28} | {t_budget:<9.4f} | {ar:>14.2f}% | {eval_b['recall']*100:>7.2f}% | Rs. {eval_b['amount_caught']:<15,.2f}")
-    print("-" * 105)
+
+            sat_str = " (score saturation)" if ar < (b_pct * 100.0 * 0.8) else ""
+            ar_display = f"{ar:>5.2f}%{sat_str}"
+
+            boot_rec, boot_ring = [], []
+            n_samples = len(y_test)
+            for _ in range(200):
+                idx = rng.randint(0, n_samples, size=n_samples)
+                f_idx = idx[y_test[idx] == 1]
+                if len(f_idx) > 0:
+                    boot_rec.append(np.mean(test_prob[f_idx] >= t_budget))
+                r_idx = idx[ring_mask[idx]]
+                if len(r_idx) > 0:
+                    boot_ring.append(np.mean(test_prob[r_idx] >= t_budget))
+            rec_ci = (float(np.percentile(boot_rec, 2.5)), float(np.percentile(boot_rec, 97.5))) if boot_rec else (eval_b['recall'], eval_b['recall'])
+            ring_ci = (float(np.percentile(boot_ring, 2.5)), float(np.percentile(boot_ring, 97.5))) if boot_ring else (0.0, 0.0)
+
+            ring_rec = float(np.mean(test_prob[ring_mask] >= t_budget)) if n_ring > 0 else 0.0
+            rec_str = f"{eval_b['recall']*100:.2f}% [{rec_ci[0]*100:.2f}..{rec_ci[1]*100:.2f}%]"
+            ring_str = f"{ring_rec*100:.1f}% [{ring_ci[0]*100:.1f}..{ring_ci[1]*100:.1f}%]" if n_ring > 0 else "N/A"
+
+            print(f"{b_pct*100:<14.1f}% | {name:<28} | {t_budget:<9.4f} | {ar_display:<23} | {rec_str:<26} | {ring_str:<30} | Rs. {eval_b['amount_caught']:<15,.2f}")
+    print("-" * 165)
 
     # Primary deployed model is Tabular + Graph
     deployed = results[-1]

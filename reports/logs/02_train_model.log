@@ -52,11 +52,11 @@ Selected Validation Thresholds: F2-Optimal = 0.2014 | Cost-Optimal = 0.0170
 === PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===
 Variant                             | TP    | FP    | FN    | TN     | Alert Rate | Precision | Recall  | FN Cost (Rs.)     | FP Cost (Rs.)    | Total Cost (Rs.)  | Beats FN?  | Beats FE (>5%)?
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Raw Numeric Only (Effectively Flag-Everything) | 621   | 34678 | 1     | 654    |     98.18% |     1.76% |  99.84% | Rs. 10,469.50     | Rs. 1,733,900.00 | Rs. 1,744,369.50  | YES        | NO             
-Raw + One-Hot Type                  | 613   | 14899 | 9     | 20433  |     43.14% |     3.95% |  98.55% | Rs. 164,907.93    | Rs. 744,950.00   | Rs. 909,857.93    | YES        | YES            
-No-Accounting-Error Tabular         | 615   | 15512 | 7     | 19820  |     44.85% |     3.81% |  98.87% | Rs. 157,473.79    | Rs. 775,600.00   | Rs. 933,073.79    | YES        | YES            
+Raw Numeric Only (Near Flag-Everything) | 621   | 34678 | 1     | 654    |     98.18% |     1.76% |  99.84% | Rs. 10,469.50     | Rs. 1,733,900.00 | Rs. 1,744,369.50  | YES        | NO             
+Raw + One-Hot Type (Near Flag-Everything) | 613   | 14899 | 9     | 20433  |     43.14% |     3.95% |  98.55% | Rs. 164,907.93    | Rs. 744,950.00   | Rs. 909,857.93    | YES        | YES            
+No-Accounting-Error Tabular (Near Flag-Everything) | 615   | 15512 | 7     | 19820  |     44.85% |     3.81% |  98.87% | Rs. 157,473.79    | Rs. 775,600.00   | Rs. 933,073.79    | YES        | YES            
 No-Accounting-Error + Graph         | 610   | 2259  | 12    | 33073  |      7.98% |    21.26% |  98.07% | Rs. 230,895.98    | Rs. 112,950.00   | Rs. 343,845.98    | YES        | YES            
-Tabular Only (23 cols)              | 614   | 15230 | 8     | 20102  |     44.07% |     3.88% |  98.71% | Rs. 159,224.63    | Rs. 761,500.00   | Rs. 920,724.63    | YES        | YES            
+Tabular Only (23 cols) (Near Flag-Everything) | 614   | 15230 | 8     | 20102  |     44.07% |     3.88% |  98.71% | Rs. 159,224.63    | Rs. 761,500.00   | Rs. 920,724.63    | YES        | YES            
 Tabular + Graph (33 cols)           | 607   | 1361  | 15    | 33971  |      5.47% |    30.84% |  97.59% | Rs. 381,728.67    | Rs. 68,050.00    | Rs. 449,778.67    | YES        | YES            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -90,27 +90,27 @@ Rs. 5,000            | Tabular + Graph (33 cols)    | 0.2014   |      1.76% |  9
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 === RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===
-Alert Budget %  | Variant                      | Threshold | Actual Alert %  | Recall   | Amount Caught (Rs.)
----------------------------------------------------------------------------------------------------------
-1.0           % | Raw Numeric Only             | 0.7777    |           0.99% |   45.34% | Rs. 21,124,930.89  
-1.0           % | Raw + One-Hot Type           | 0.9074    |           1.03% |   43.09% | Rs. 21,043,743.96  
-1.0           % | No-Accounting-Error Tabular  | 0.9098    |           1.00% |   53.86% | Rs. 24,308,326.44  
-1.0           % | No-Accounting-Error + Graph  | 0.9984    |           0.66% |   37.30% | Rs. 15,847,436.92  
-1.0           % | Tabular Only (23 cols)       | 0.9529    |           0.97% |   54.82% | Rs. 24,361,970.21  
-1.0           % | Tabular + Graph (33 cols)    | 0.9989    |           0.76% |   43.09% | Rs. 19,145,004.50  
-2.0           % | Raw Numeric Only             | 0.6771    |           1.97% |   50.80% | Rs. 22,480,771.56  
-2.0           % | Raw + One-Hot Type           | 0.8392    |           2.10% |   52.57% | Rs. 23,565,460.61  
-2.0           % | No-Accounting-Error Tabular  | 0.8028    |           2.12% |   59.81% | Rs. 25,818,660.87  
-2.0           % | No-Accounting-Error + Graph  | 0.5719    |           1.63% |   84.89% | Rs. 32,174,504.67  
-2.0           % | Tabular Only (23 cols)       | 0.7987    |           2.20% |   60.29% | Rs. 25,268,949.63  
-2.0           % | Tabular + Graph (33 cols)    | 0.1203    |           1.86% |   97.59% | Rs. 34,976,217.25  
-5.0           % | Raw Numeric Only             | 0.5566    |           4.91% |   55.95% | Rs. 24,407,470.51  
-5.0           % | Raw + One-Hot Type           | 0.7403    |           4.94% |   66.72% | Rs. 26,881,860.19  
-5.0           % | No-Accounting-Error Tabular  | 0.6900    |           5.32% |   70.26% | Rs. 27,682,209.68  
-5.0           % | No-Accounting-Error + Graph  | 0.0356    |           4.89% |   97.75% | Rs. 35,010,168.07  
-5.0           % | Tabular Only (23 cols)       | 0.7015    |           5.36% |   71.54% | Rs. 27,649,117.26  
-5.0           % | Tabular + Graph (33 cols)    | 0.0175    |           5.27% |   97.59% | Rs. 34,976,217.25  
----------------------------------------------------------------------------------------------------------
+Alert Budget %  | Variant                      | Threshold | Actual Alert %          | Overall Recall (95% CI)    | Ring Recall (n=263, 95% CI)    | Amount Caught (Rs.)
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1.0           % | Raw Numeric Only             | 0.7777    |  0.99%                  | 45.34% [41.45..49.07%]     | 0.0% [0.0..0.0%]               | Rs. 21,124,930.89  
+1.0           % | Raw + One-Hot Type           | 0.9074    |  1.03%                  | 43.09% [38.76..46.81%]     | 3.0% [1.2..5.2%]               | Rs. 21,043,743.96  
+1.0           % | No-Accounting-Error Tabular  | 0.9098    |  1.00%                  | 53.86% [50.48..58.36%]     | 0.4% [0.0..1.3%]               | Rs. 24,308,326.44  
+1.0           % | No-Accounting-Error + Graph  | 0.9984    |  0.66% (score saturation) | 37.30% [32.97..40.94%]     | 34.6% [28.8..39.7%]            | Rs. 15,847,436.92  
+1.0           % | Tabular Only (23 cols)       | 0.9529    |  0.97%                  | 54.82% [51.48..58.82%]     | 0.0% [0.0..0.0%]               | Rs. 24,361,970.21  
+1.0           % | Tabular + Graph (33 cols)    | 0.9989    |  0.76% (score saturation) | 43.09% [38.92..46.96%]     | 26.6% [21.1..31.1%]            | Rs. 19,145,004.50  
+2.0           % | Raw Numeric Only             | 0.6771    |  1.97%                  | 50.80% [46.95..53.70%]     | 1.9% [0.4..3.5%]               | Rs. 22,480,771.56  
+2.0           % | Raw + One-Hot Type           | 0.8392    |  2.10%                  | 52.57% [48.92..56.20%]     | 11.8% [8.8..15.6%]             | Rs. 23,565,460.61  
+2.0           % | No-Accounting-Error Tabular  | 0.8028    |  2.12%                  | 59.81% [55.89..63.73%]     | 12.5% [8.8..16.1%]             | Rs. 25,818,660.87  
+2.0           % | No-Accounting-Error + Graph  | 0.5719    |  1.63%                  | 84.89% [81.96..87.68%]     | 72.2% [66.9..78.2%]            | Rs. 32,174,504.67  
+2.0           % | Tabular Only (23 cols)       | 0.7987    |  2.20%                  | 60.29% [56.89..64.28%]     | 10.6% [7.4..14.0%]             | Rs. 25,268,949.63  
+2.0           % | Tabular + Graph (33 cols)    | 0.1203    |  1.86%                  | 97.59% [96.29..98.67%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
+5.0           % | Raw Numeric Only             | 0.5566    |  4.91%                  | 55.95% [52.24..59.38%]     | 4.6% [2.1..7.1%]               | Rs. 24,407,470.51  
+5.0           % | Raw + One-Hot Type           | 0.7403    |  4.94%                  | 66.72% [63.67..70.21%]     | 35.4% [30.1..41.8%]            | Rs. 26,881,860.19  
+5.0           % | No-Accounting-Error Tabular  | 0.6900    |  5.32%                  | 70.26% [67.04..73.69%]     | 36.9% [31.7..41.6%]            | Rs. 27,682,209.68  
+5.0           % | No-Accounting-Error + Graph  | 0.0356    |  4.89%                  | 97.75% [96.54..98.88%]     | 99.6% [98.7..100.0%]           | Rs. 35,010,168.07  
+5.0           % | Tabular Only (23 cols)       | 0.7015    |  5.36%                  | 71.54% [68.09..75.20%]     | 38.0% [32.0..44.5%]            | Rs. 27,649,117.26  
+5.0           % | Tabular + Graph (33 cols)    | 0.0175    |  5.27%                  | 97.59% [96.27..98.71%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 === SAVED MODEL METADATA CONTENTS ===
   feature_names: ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest', 'orig_in_degree', 'orig_out_degree', 'orig_pagerank', 'orig_component_size', 'orig_fraud_exposure', 'dest_in_degree', 'dest_out_degree', 'dest_pagerank', 'dest_component_size', 'dest_fraud_exposure', 'type_CASH_IN', 'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER', 'errorBalanceOrig', 'errorBalanceDest', 'log_amount', 'account_drained', 'dest_balance_zero', 'orig_balance_zero', 'amount_to_oldbalanceOrg_ratio', 'amount_to_oldbalanceDest_ratio', 'hour_of_day', 'high_risk_hour', 'day_of_week', 'net_change_orig', 'net_change_dest']

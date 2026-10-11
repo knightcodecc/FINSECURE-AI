@@ -200,10 +200,14 @@ def run_demo():
         "newbalanceDest": float(row_c["newbalanceDest"]),
     }
     res_c = predictor.predict_one(tx_c)
-    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold {thresh:.4f})")
+    abs_diff = abs(res_c['prediction_proba'] - thresh)
+    print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold)")
+    print(f"Row ID: {idx_c}")
     print(f"True Label: {int(row_c['isFraud'])} ({'Fraud' if row_c['isFraud']==1 else 'Legitimate'})")
+    print(f"Active Threshold: {thresh:.4f}")
+    print(f"Model Score (Probability): {res_c['prediction_proba']:.4f}")
+    print(f"|Score - Threshold|: {abs_diff:.6f}")
     print(f"Decision: {'FLAGGED FRAUD' if res_c['is_fraud'] else 'BORDERLINE CLEARED'}")
-    print(f"Model Score (Probability): {res_c['prediction_proba']:.4f} (Active Threshold: {thresh:.4f})")
     
     pass_c = res_c['prediction_proba'] is not None and isinstance(res_c['is_fraud'], bool)
     checks_passed.append(("Scenario C (Borderline Case Handled)", pass_c))

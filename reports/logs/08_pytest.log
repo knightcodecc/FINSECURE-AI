@@ -30,4 +30,4 @@ tests/test_serving.py::test_get_metrics_cost_endpoint
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 28 passed, 4 warnings in 25.97s =======================
+======================= 28 passed, 4 warnings in 12.12s =======================

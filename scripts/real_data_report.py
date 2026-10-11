@@ -42,21 +42,29 @@ def bootstrap_pr_auc_and_cost_ci(
     return pr_ci, cost_ci
 
 
-def tune_f2_threshold(y_val: np.ndarray, probas_val: np.ndarray) -> float:
-    """Tune threshold optimizing F2 score on validation split."""
-    best_t, best_f2 = 0.5, -1.0
-    for t in np.linspace(0.01, 0.99, 99):
-        preds = (probas_val >= t).astype(int)
-        tp = np.sum((preds == 1) & (y_val == 1))
-        fp = np.sum((preds == 1) & (y_val == 0))
-        fn = np.sum((preds == 0) & (y_val == 1))
-        prec = tp / max(tp + fp, 1e-9)
-        rec = tp / max(tp + fn, 1e-9)
-        f2 = (5 * prec * rec) / max(4 * prec + rec, 1e-9)
-        if f2 > best_f2:
-            best_f2 = f2
-            best_t = t
-    return float(best_t)
+def bootstrap_budget_recall_ci(
+    y_test: np.ndarray,
+    p_te: np.ndarray,
+    threshold: float,
+    ring_mask: np.ndarray,
+    n_bootstraps: int = 200,
+    seed: int = 42
+) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """Compute 95% bootstrap confidence intervals for overall recall and ring recall."""
+    rng = np.random.RandomState(seed)
+    n = len(y_test)
+    boot_rec, boot_ring = [], []
+    for _ in range(n_bootstraps):
+        idx = rng.choice(n, size=n, replace=True)
+        fraud_idx = idx[y_test[idx] == 1]
+        if len(fraud_idx) > 0:
+            boot_rec.append(np.mean(p_te[fraud_idx] >= threshold))
+        r_idx = idx[ring_mask[idx]]
+        if len(r_idx) > 0:
+            boot_ring.append(np.mean(p_te[r_idx] >= threshold))
+    rec_ci = (float(np.percentile(boot_rec, 2.5)), float(np.percentile(boot_rec, 97.5))) if boot_rec else (0.0, 0.0)
+    ring_ci = (float(np.percentile(boot_ring, 2.5)), float(np.percentile(boot_ring, 97.5))) if boot_ring else (0.0, 0.0)
+    return rec_ci, ring_ci
 
 
 def main():
@@ -247,9 +255,15 @@ def main():
     print("-" * 135)
 
     print("\n=== RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===")
-    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<15} | {'Recall':<8} | {'Amount Caught (Rs.)':<18}")
-    print("-" * 105)
+    print(f"{'Alert Budget %':<15} | {'Variant':<28} | {'Threshold':<9} | {'Actual Alert %':<23} | {'Overall Recall (95% CI)':<26} | {'Ring Recall (n=263, 95% CI)':<30} | {'Amount Caught (Rs.)':<18}")
+    print("-" * 165)
+    ring_mask = (test_df["mechanism"] == "MECH_B_RING").values if "mechanism" in test_df.columns else np.zeros(len(test_df), dtype=bool)
+    n_ring = int(np.sum(ring_mask))
+
+    budget_results = {}
+
     for b_pct in [0.01, 0.02, 0.05]:
+        budget_results[b_pct] = {}
         for v_name, v_cols in variants:
             if not v_cols:
                 continue
@@ -259,8 +273,24 @@ def main():
             t_budget = float(np.quantile(p_va, 1.0 - b_pct)) if len(p_va) > 0 else 0.5
             eval_b = expected_cost(y_test, p_te, t_budget, amounts_test)
             ar = (eval_b['tp'] + eval_b['fp']) / len(y_test) * 100.0
-            print(f"{b_pct*100:<14.1f}% | {v_name:<28} | {t_budget:<9.4f} | {ar:>14.2f}% | {eval_b['recall']*100:>7.2f}% | Rs. {eval_b['amount_caught']:<15,.2f}")
-    print("-" * 105)
+            
+            sat_str = " (score saturation)" if ar < (b_pct * 100.0 * 0.8) else ""
+            ar_display = f"{ar:>5.2f}%{sat_str}"
+
+            rec_ci, ring_ci = bootstrap_budget_recall_ci(y_test, p_te, t_budget, ring_mask)
+            ring_rec = float(np.mean(p_te[ring_mask] >= t_budget)) if n_ring > 0 else 0.0
+            rec_str = f"{eval_b['recall']*100:.2f}% [{rec_ci[0]*100:.2f}..{rec_ci[1]*100:.2f}%]"
+            ring_str = f"{ring_rec*100:.1f}% [{ring_ci[0]*100:.1f}..{ring_ci[1]*100:.1f}%]" if n_ring > 0 else "N/A"
+
+            budget_results[b_pct][v_name] = {
+                "overall_recall": eval_b['recall'],
+                "rec_ci": rec_ci,
+                "ring_recall": ring_rec,
+                "ring_ci": ring_ci,
+            }
+
+            print(f"{b_pct*100:<14.1f}% | {v_name:<28} | {t_budget:<9.4f} | {ar_display:<23} | {rec_str:<26} | {ring_str:<30} | Rs. {eval_b['amount_caught']:<15,.2f}")
+    print("-" * 165)
 
     # 4. Fraud Exposure coverage across ALL rows and per split
     print("\n=== 4. FRAUD EXPOSURE COVERAGE ANALYSIS ACROSS ALL ROWS & FRAUD ROWS ===")
@@ -299,9 +329,10 @@ def main():
         conclusion += f"(PR-AUC: {g_pr:.4f} [{g_ci[0]:.4f}..{g_ci[1]:.4f}] vs {t_pr:.4f} [{t_ci[0]:.4f}..{t_ci[1]:.4f}], "
         conclusion += f"Expected Cost: Rs. {g_cost:,.2f} [{g_cost_ci[0]:,.2f}..{g_cost_ci[1]:,.2f}] vs Rs. {t_cost:,.2f} [{t_cost_ci[0]:,.2f}..{t_cost_ci[1]:,.2f}])."
 
-        if graph_res.get("ring_rec") is not None and tab_res.get("ring_rec") is not None:
-            ring_diff = (graph_res["ring_rec"] - tab_res["ring_rec"]) * 100
-            conclusion += f" Ring-fraud recall difference: +{ring_diff:.1f}% ({graph_res['ring_rec']*100:.1f}% vs {tab_res['ring_rec']*100:.1f}%)."
+        b2_graph = budget_results.get(0.02, {}).get("Tabular + Graph (33 cols)", {})
+        b2_tab = budget_results.get(0.02, {}).get("Tabular Only (23 cols)", {})
+        if b2_graph and b2_tab:
+            conclusion += f" Equal Alert Budget Comparison (2.0% Alert Budget): Overall Recall {b2_graph['overall_recall']*100:.2f}% [{b2_graph['rec_ci'][0]*100:.2f}..{b2_graph['rec_ci'][1]*100:.2f}%] vs {b2_tab['overall_recall']*100:.2f}% [{b2_tab['rec_ci'][0]*100:.2f}..{b2_tab['rec_ci'][1]*100:.2f}%]; Ring-fraud Recall (n={n_ring}) {b2_graph['ring_recall']*100:.1f}% [{b2_graph['ring_ci'][0]*100:.1f}..{b2_graph['ring_ci'][1]*100:.1f}%] vs {b2_tab['ring_recall']*100:.1f}% [{b2_tab['ring_ci'][0]*100:.1f}..{b2_tab['ring_ci'][1]*100:.1f}%]."
 
         conclusion += f" Fraud exposure coverage: {n_exp} / {n_fraud_tot} ({pct_exp:.2f}%) of Clean Test fraud rows have orig_ or dest_fraud_exposure > 0."
         print(conclusion)

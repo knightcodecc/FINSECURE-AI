@@ -180,8 +180,8 @@ def format_cost_table_row(
     beats_fn = total_cost < no_model_cost
     beats_fe = total_cost < (flag_everything_cost * 0.95)
 
-    is_effectively_fe = alert_rate > 0.90
-    variant_label = variant_name + (" (Effectively Flag-Everything)" if is_effectively_fe else "")
+    is_near_fe = alert_rate > 0.20
+    variant_label = variant_name + (" (Near Flag-Everything)" if is_near_fe else "")
 
     formatted_line = (
         f"{variant_label:<35} | {tp:<5} | {fp:<5} | {fn:<5} | {tn:<6} | "

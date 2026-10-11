@@ -3,7 +3,7 @@
 ===========================================================================
 
 [SERVING DATA HYGIENE]: Model version mismatch detected (old='v_legacy_v1_0', new='v_3a1b104ac1b8').
-[MODEL ARCHIVE SUCCESS]: Legacy predictions archived to SQLite table: 'predictions_archive_1791624982'
+[MODEL ARCHIVE SUCCESS]: Legacy predictions archived to SQLite table: 'predictions_archive_1791699460'
 
 --- SCENARIO A: Online Ring Fraud (Clean Test Row ID 60) ---
 [ALERT LOCAL LOG]: (HIGH_FRAUD_ALERT) {'nameOrig': 'C_MULE_RING_10', 'nameDest': 'M_HUB_CASHOUT_1', 'amount': -0.36261350141351556, 'prediction_proba': 0.7998518943786621, 'explanation': 'Transaction Flagged as Fraud with a fraud probability of 80.0% (threshold 1.7%). Primary risk drivers pushing toward fraud: TRANSFER Transaction Type (SHAP +1.727), Recipient Balance Discrepancy (SHAP +1.641). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -1.833).'}
@@ -28,10 +28,13 @@ Grounded Explanation: Transaction Cleared as Legitimate with a fraud probability
 
 --- SCENARIO C: Borderline Case (Clean Test Row ID 9942) ---
 [ALERT LOCAL LOG]: (HIGH_FRAUD_ALERT) {'nameOrig': 'C_BORDERLINE', 'nameDest': 'M_BORDERLINE', 'amount': -0.12593144976751983, 'prediction_proba': 0.16144712269306183, 'explanation': 'Transaction Flagged as Fraud with a fraud probability of 16.1% (threshold 1.7%). Primary risk drivers pushing toward fraud: Recipient Balance Discrepancy (SHAP +2.335), Sender Balance Discrepancy (SHAP +1.558). Mitigating factors: Ratio of Amount to Sender Balance (SHAP -3.760), Transaction Amount (SHAP -0.953).'}
-Selection Rule: Clean-Test row ID 9942 (Closest probability score to active threshold 0.0170)
+Selection Rule: Clean-Test row ID 9942 (Closest probability score to active threshold)
+Row ID: 9942
 True Label: 0 (Legitimate)
+Active Threshold: 0.0170
+Model Score (Probability): 0.1614
+|Score - Threshold|: 0.144415
 Decision: FLAGGED FRAUD
-Model Score (Probability): 0.1614 (Active Threshold: 0.0170)
 
 --- STEP 3: RAG Chatbot Audit Query Over Prediction Log ---
 Analyst Query: 'Why was the recent transfer from C_MULE_RING_10 flagged as fraud?'

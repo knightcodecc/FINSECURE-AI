@@ -220,21 +220,19 @@ class DriftMonitor:
         if recent_probas is not None and len(recent_probas) > 0 and self.reference_probas is not None and len(self.reference_probas) > 0:
             score_psi = float(compute_psi(self.reference_probas, recent_probas, is_probability=True))
 
-        # Check type mix and amount shift
-        type_debit_psi = feature_psi_map.get("type_DEBIT", 0.0)
-        type_cashout_psi = feature_psi_map.get("type_CASH_OUT", 0.0)
-        amt_psi = feature_psi_map.get("amount", 0.0)
-        log_amt_psi = feature_psi_map.get("log_amount", 0.0)
-
-        type_or_amount_drift = (type_debit_psi > DRIFT_PSI_WARNING) or (amt_psi > DRIFT_PSI_WARNING) or (log_amt_psi > DRIFT_PSI_WARNING)
-        retrain_recommended = bool(len(drifted_features) >= 2 or score_psi > DRIFT_PSI_WARNING or type_or_amount_drift)
-
-        if retrain_recommended:
+        # Concept Drift Decision Rule:
+        # - DRIFT_DETECTED if ANY INCLUDED feature PSI > 0.25 or score_psi > 0.25
+        # - WARNING if ANY INCLUDED feature PSI > 0.10 or score_psi > 0.10
+        # - STABLE otherwise
+        if len(drifted_features) > 0 or score_psi > DRIFT_PSI_WARNING:
             overall_status = "DRIFT_DETECTED"
-        elif len(warning_features) >= 2 or score_psi >= DRIFT_PSI_STABLE:
+            retrain_recommended = True
+        elif len(warning_features) > 0 or score_psi > DRIFT_PSI_STABLE:
             overall_status = "WARNING"
+            retrain_recommended = False
         else:
             overall_status = "STABLE"
+            retrain_recommended = False
 
         snapshot = {
             "timestamp": datetime.now().isoformat(),

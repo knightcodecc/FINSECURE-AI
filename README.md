@@ -71,6 +71,15 @@ Run the full pytest suite covering feature column counts, SHAP additivity in mar
 pytest -v
 ```
 
+### 7. Concept Drift Decision Rule & Monitoring
+
+FinSecure AI v2 monitors concept and covariate distribution shifts using Population Stability Index (PSI):
+- **Drift Decision Rule**:
+  - `DRIFT_DETECTED` (`retrain_recommended = True`): Triggered if **ANY INCLUDED** feature PSI > 0.25 OR real model score PSI > 0.25.
+  - `WARNING` (`retrain_recommended = False`): Triggered if **ANY INCLUDED** feature PSI > 0.10 OR real model score PSI > 0.10.
+  - `STABLE` (`retrain_recommended = False`): All included features and prediction score PSI remain $\le 0.10$.
+- **Feature Inclusion Safeguard**: Cumulative graph structural metrics (`orig_in_degree`, `orig_out_degree`, `orig_pagerank`, `orig_component_size`, `orig_fraud_exposure`, `dest_in_degree`, `dest_out_degree`, `dest_pagerank`, `dest_component_size`, `dest_fraud_exposure`) and calendar cycles (`step`, `hour_of_day`, `day_of_week`, `high_risk_hour`) are designated `EXCLUDED_CUMULATIVE` and `EXCLUDED_CALENDAR`. They reflect expanding graph connectivity and diurnal patterns rather than real-world distribution drift, preventing false-positive retraining triggers.
+
 ---
 
 ## 📁 Repository Structure

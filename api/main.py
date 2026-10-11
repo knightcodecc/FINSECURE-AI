@@ -138,11 +138,12 @@ async def predict_batch(batch_input: BatchTransactionInput):
 def get_drift_status():
     try:
         train_df = pd.read_parquet("data/features_train.parquet")
-        val_df = pd.read_parquet("data/features_val.parquet")
-        feature_cols = [c for c in train_df.columns if c not in ("isFraud", "step", "mechanism")]
+        test_path = Path("data/features_test.parquet")
+        val_path = Path("data/features_val.parquet")
+        eval_df = pd.read_parquet(test_path) if test_path.exists() else pd.read_parquet(val_path)
 
         monitor = DriftMonitor(train_df)
-        status_res = monitor.check(val_df[feature_cols])
+        status_res = monitor.check(eval_df)
 
         return DriftStatusResponse(**status_res)
     except Exception as e:

@@ -18,11 +18,11 @@ Shift Split:  45,984 rows | Fraud:   905 (1.97%)
 === PROGRAMMATIC COST & CONFUSION MATRIX TABLE (CLEAN TEST SPLIT) ===
 Variant                             | TP    | FP    | FN    | TN     | Alert Rate | Precision | Recall  | FN Cost (Rs.)     | FP Cost (Rs.)    | Total Cost (Rs.)  | Beats FN?  | Beats FE (>5%)?
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Raw Numeric Only (Effectively Flag-Everything) | 621   | 34678 | 1     | 654    |     98.18% |     1.76% |  99.84% | Rs. 10,469.50     | Rs. 1,733,900.00 | Rs. 1,744,369.50  | YES        | NO             
-Raw + One-Hot Type                  | 613   | 14899 | 9     | 20433  |     43.14% |     3.95% |  98.55% | Rs. 164,907.93    | Rs. 744,950.00   | Rs. 909,857.93    | YES        | YES            
-No-Accounting-Error Tabular         | 614   | 15233 | 8     | 20099  |     44.08% |     3.87% |  98.71% | Rs. 160,609.77    | Rs. 761,650.00   | Rs. 922,259.77    | YES        | YES            
+Raw Numeric Only (Near Flag-Everything) | 621   | 34678 | 1     | 654    |     98.18% |     1.76% |  99.84% | Rs. 10,469.50     | Rs. 1,733,900.00 | Rs. 1,744,369.50  | YES        | NO             
+Raw + One-Hot Type (Near Flag-Everything) | 613   | 14899 | 9     | 20433  |     43.14% |     3.95% |  98.55% | Rs. 164,907.93    | Rs. 744,950.00   | Rs. 909,857.93    | YES        | YES            
+No-Accounting-Error Tabular (Near Flag-Everything) | 614   | 15233 | 8     | 20099  |     44.08% |     3.87% |  98.71% | Rs. 160,609.77    | Rs. 761,650.00   | Rs. 922,259.77    | YES        | YES            
 No-Accounting-Error + Graph         | 610   | 2259  | 12    | 33073  |      7.98% |    21.26% |  98.07% | Rs. 230,895.98    | Rs. 112,950.00   | Rs. 343,845.98    | YES        | YES            
-Tabular Only (23 cols)              | 614   | 15214 | 8     | 20118  |     44.02% |     3.88% |  98.71% | Rs. 159,224.63    | Rs. 760,700.00   | Rs. 919,924.63    | YES        | YES            
+Tabular Only (23 cols) (Near Flag-Everything) | 614   | 15214 | 8     | 20118  |     44.02% |     3.88% |  98.71% | Rs. 159,224.63    | Rs. 760,700.00   | Rs. 919,924.63    | YES        | YES            
 Tabular + Graph (33 cols)           | 607   | 1361  | 15    | 33971  |      5.47% |    30.84% |  97.59% | Rs. 381,728.67    | Rs. 68,050.00    | Rs. 449,778.67    | YES        | YES            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -56,27 +56,27 @@ Rs. 5,000            | Tabular + Graph (33 cols)    | 0.2014   |      1.76% |  9
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 === RECALL AT FIXED ALERT BUDGETS (1%, 2%, 5% OF TRANSACTIONS) ===
-Alert Budget %  | Variant                      | Threshold | Actual Alert %  | Recall   | Amount Caught (Rs.)
----------------------------------------------------------------------------------------------------------
-1.0           % | Raw Numeric Only             | 0.7777    |           0.99% |   45.34% | Rs. 21,124,930.89  
-1.0           % | Raw + One-Hot Type           | 0.9074    |           1.03% |   43.09% | Rs. 21,043,743.96  
-1.0           % | No-Accounting-Error Tabular  | 0.9055    |           1.00% |   54.18% | Rs. 24,331,623.40  
-1.0           % | No-Accounting-Error + Graph  | 0.9984    |           0.66% |   37.30% | Rs. 15,847,436.92  
-1.0           % | Tabular Only (23 cols)       | 0.9495    |           0.97% |   54.82% | Rs. 24,361,970.21  
-1.0           % | Tabular + Graph (33 cols)    | 0.9989    |           0.76% |   43.09% | Rs. 19,145,004.50  
-2.0           % | Raw Numeric Only             | 0.6771    |           1.97% |   50.80% | Rs. 22,480,771.56  
-2.0           % | Raw + One-Hot Type           | 0.8392    |           2.10% |   52.57% | Rs. 23,565,460.61  
-2.0           % | No-Accounting-Error Tabular  | 0.8028    |           2.09% |   59.97% | Rs. 25,498,800.18  
-2.0           % | No-Accounting-Error + Graph  | 0.5719    |           1.63% |   84.89% | Rs. 32,174,504.67  
-2.0           % | Tabular Only (23 cols)       | 0.7937    |           2.20% |   60.45% | Rs. 25,353,538.44  
-2.0           % | Tabular + Graph (33 cols)    | 0.1203    |           1.86% |   97.59% | Rs. 34,976,217.25  
-5.0           % | Raw Numeric Only             | 0.5566    |           4.91% |   55.95% | Rs. 24,407,470.51  
-5.0           % | Raw + One-Hot Type           | 0.7403    |           4.94% |   66.72% | Rs. 26,881,860.19  
-5.0           % | No-Accounting-Error Tabular  | 0.6912    |           5.25% |   70.26% | Rs. 27,609,194.80  
-5.0           % | No-Accounting-Error + Graph  | 0.0356    |           4.89% |   97.75% | Rs. 35,010,168.07  
-5.0           % | Tabular Only (23 cols)       | 0.7006    |           5.25% |   69.77% | Rs. 26,986,130.85  
-5.0           % | Tabular + Graph (33 cols)    | 0.0175    |           5.27% |   97.59% | Rs. 34,976,217.25  
----------------------------------------------------------------------------------------------------------
+Alert Budget %  | Variant                      | Threshold | Actual Alert %          | Overall Recall (95% CI)    | Ring Recall (n=263, 95% CI)    | Amount Caught (Rs.)
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1.0           % | Raw Numeric Only             | 0.7777    |  0.99%                  | 45.34% [41.45..49.07%]     | 0.0% [0.0..0.0%]               | Rs. 21,124,930.89  
+1.0           % | Raw + One-Hot Type           | 0.9074    |  1.03%                  | 43.09% [39.13..47.28%]     | 3.0% [1.2..5.2%]               | Rs. 21,043,743.96  
+1.0           % | No-Accounting-Error Tabular  | 0.9055    |  1.00%                  | 54.18% [50.40..58.25%]     | 0.4% [0.0..1.3%]               | Rs. 24,331,623.40  
+1.0           % | No-Accounting-Error + Graph  | 0.9984    |  0.66% (score saturation) | 37.30% [33.63..40.87%]     | 34.6% [29.0..40.1%]            | Rs. 15,847,436.92  
+1.0           % | Tabular Only (23 cols)       | 0.9495    |  0.97%                  | 54.82% [51.07..58.26%]     | 0.0% [0.0..0.0%]               | Rs. 24,361,970.21  
+1.0           % | Tabular + Graph (33 cols)    | 0.9989    |  0.76% (score saturation) | 43.09% [39.06..47.49%]     | 26.6% [22.1..32.2%]            | Rs. 19,145,004.50  
+2.0           % | Raw Numeric Only             | 0.6771    |  1.97%                  | 50.80% [47.18..54.89%]     | 1.9% [0.4..3.9%]               | Rs. 22,480,771.56  
+2.0           % | Raw + One-Hot Type           | 0.8392    |  2.10%                  | 52.57% [49.12..56.75%]     | 11.8% [8.3..15.8%]             | Rs. 23,565,460.61  
+2.0           % | No-Accounting-Error Tabular  | 0.8028    |  2.09%                  | 59.97% [56.30..63.75%]     | 12.9% [9.1..17.3%]             | Rs. 25,498,800.18  
+2.0           % | No-Accounting-Error + Graph  | 0.5719    |  1.63%                  | 84.89% [82.11..87.27%]     | 72.2% [67.0..76.6%]            | Rs. 32,174,504.67  
+2.0           % | Tabular Only (23 cols)       | 0.7937    |  2.20%                  | 60.45% [56.89..64.03%]     | 11.4% [7.4..14.9%]             | Rs. 25,353,538.44  
+2.0           % | Tabular + Graph (33 cols)    | 0.1203    |  1.86%                  | 97.59% [96.20..98.74%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
+5.0           % | Raw Numeric Only             | 0.5566    |  4.91%                  | 55.95% [52.42..59.45%]     | 4.6% [2.2..7.3%]               | Rs. 24,407,470.51  
+5.0           % | Raw + One-Hot Type           | 0.7403    |  4.94%                  | 66.72% [62.97..70.39%]     | 35.4% [29.3..40.7%]            | Rs. 26,881,860.19  
+5.0           % | No-Accounting-Error Tabular  | 0.6912    |  5.25%                  | 70.26% [66.45..73.46%]     | 36.5% [30.9..41.8%]            | Rs. 27,609,194.80  
+5.0           % | No-Accounting-Error + Graph  | 0.0356    |  4.89%                  | 97.75% [96.55..98.88%]     | 99.6% [98.8..100.0%]           | Rs. 35,010,168.07  
+5.0           % | Tabular Only (23 cols)       | 0.7006    |  5.25%                  | 69.77% [66.01..73.07%]     | 33.8% [27.7..38.3%]            | Rs. 26,986,130.85  
+5.0           % | Tabular + Graph (33 cols)    | 0.0175    |  5.27%                  | 97.59% [96.20..98.74%]     | 100.0% [100.0..100.0%]         | Rs. 34,976,217.25  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 === 4. FRAUD EXPOSURE COVERAGE ANALYSIS ACROSS ALL ROWS & FRAUD ROWS ===
 [Train     ] ALL Rows: orig_fraud_exposure > 0 = 2,834/169,746 ( 1.67%) | dest_fraud_exposure > 0 = 3,609/169,746 ( 2.13%)
@@ -85,6 +85,6 @@ Alert Budget %  | Variant                      | Threshold | Actual Alert %  | R
 Clean Test FRAUD Rows with orig_ or dest_fraud_exposure > 0: 282 / 622 (45.34%)
 
 === 5. DYNAMICALLY COMPUTED HONEST CONCLUSION ===
-Performance Comparison (Tabular + Graph vs Tabular Only): Graph features demonstrate LIFT (PR-AUC: 0.9607 [0.9459..0.9753] vs 0.6456 [0.6126..0.6810], Expected Cost: Rs. 449,778.67 [199,697.00..760,600.97] vs Rs. 919,924.63 [806,431.67..1,090,424.99]). Ring-fraud recall difference: +0.4% (100.0% vs 99.6%). Fraud exposure coverage: 282 / 622 (45.34%) of Clean Test fraud rows have orig_ or dest_fraud_exposure > 0.
+Performance Comparison (Tabular + Graph vs Tabular Only): Graph features demonstrate LIFT (PR-AUC: 0.9607 [0.9459..0.9753] vs 0.6456 [0.6126..0.6810], Expected Cost: Rs. 449,778.67 [199,697.00..760,600.97] vs Rs. 919,924.63 [806,431.67..1,090,424.99]). Equal Alert Budget Comparison (2.0% Alert Budget): Overall Recall 97.59% [96.20..98.74%] vs 60.45% [56.89..64.03%]; Ring-fraud Recall (n=263) 100.0% [100.0..100.0%] vs 11.4% [7.4..14.9%]. Fraud exposure coverage: 282 / 622 (45.34%) of Clean Test fraud rows have orig_ or dest_fraud_exposure > 0.
 ==========================================================================
 
