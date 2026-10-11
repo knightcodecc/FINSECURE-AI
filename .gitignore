@@ -7,3 +7,6 @@ data/*.db
 models/*.joblib
 .venv/
 *.egg-info/
+
+models/*
+reports/logs/run*_report.log
