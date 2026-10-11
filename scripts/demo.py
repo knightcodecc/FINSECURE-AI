@@ -199,17 +199,18 @@ def run_demo():
         "oldbalanceDest": float(row_c["oldbalanceDest"]),
         "newbalanceDest": float(row_c["newbalanceDest"]),
     }
+    row_score_c = float(test_probs[idx_c])
+    diff_c = abs(row_score_c - thresh)
     res_c = predictor.predict_one(tx_c)
-    abs_diff = abs(res_c['prediction_proba'] - thresh)
     print(f"Selection Rule: Clean-Test row ID {idx_c} (Closest probability score to active threshold)")
     print(f"Row ID: {idx_c}")
     print(f"True Label: {int(row_c['isFraud'])} ({'Fraud' if row_c['isFraud']==1 else 'Legitimate'})")
     print(f"Active Threshold: {thresh:.4f}")
-    print(f"Model Score (Probability): {res_c['prediction_proba']:.4f}")
-    print(f"|Score - Threshold|: {abs_diff:.6f}")
-    print(f"Decision: {'FLAGGED FRAUD' if res_c['is_fraud'] else 'BORDERLINE CLEARED'}")
+    print(f"Model Score (Probability): {row_score_c:.4f}")
+    print(f"|Score - Threshold|: {diff_c:.6f}")
+    print(f"Decision: {'FLAGGED FRAUD' if row_score_c >= thresh else 'CLEARED LEGITIMATE'}")
     
-    pass_c = res_c['prediction_proba'] is not None and isinstance(res_c['is_fraud'], bool)
+    pass_c = row_score_c is not None and isinstance(res_c['is_fraud'], bool)
     checks_passed.append(("Scenario C (Borderline Case Handled)", pass_c))
 
     # -------------------------------------------------------------------------
@@ -229,7 +230,7 @@ def run_demo():
     print("\n--- SCENARIO D: Triggering Concept Drift Simulation ---")
     train_df = pd.read_parquet("data/features_train.parquet")
 
-    shifted_df = simulate_drift(test_df[feature_cols], amount_scale=5.0)
+    shifted_df = simulate_drift(test_df, amount_scale=5.0)
     monitor = DriftMonitor(train_df)
     drift_res = monitor.check(shifted_df)
 
