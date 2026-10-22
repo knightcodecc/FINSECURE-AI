@@ -1,0 +1,8 @@
+Strategy,Total Cost (Rs.),Amount Caught,Amount Missed,Pct Caught
+No Model (Flag Nothing),671617426.05,0.0,671617426.05,0.0%
+Raw Numeric Only (T_F2 = 0.3466),7184522.0,666424454.05,5192972.0,99.2%
+Raw + One-Hot Type (T_F2 = 0.5445),62925212.56,608928813.49,62688612.56,90.7%
+No-Accounting-Error Tabular (T_F2 = 0.5643),64972521.05,606812755.0,64804671.05,90.4%
+No-Accounting-Error + Graph (T_F2 = 0.5742),69931577.36,601706998.69,69910427.36,89.6%
+Tabular Only (23 cols) (T_F2 = 0.5247),63975323.03,607827253.02,63790173.03,90.5%
+Tabular + Graph (33 cols) (T_F2 = 0.6633),70250281.89,601373344.16,70244081.89,89.5%

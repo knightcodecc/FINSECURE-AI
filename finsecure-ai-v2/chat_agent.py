@@ -1,0 +1,48 @@
+"""
+chat_agent.py - Root re-export for FinSecure AI v2 tool-calling LLM agent.
+"""
+from api.chat_agent import (
+    ask_agent,
+    get_last_tool_calls,
+    reset_tool_calls,
+    AgentResponse,
+    TOOLS,
+    _TOOL_MAP,
+    get_scored_count,
+    describe_predictions_table,
+    run_readonly_sql,
+    get_transaction,
+    explain_transaction,
+    get_model_metrics,
+    get_threshold_info,
+    get_drift_status,
+    get_cost_summary,
+    get_paysim_stats,
+    get_latest_upload_summary,
+    SYSTEM_PROMPT,
+    DB_PATH,
+    PRED_TABLE,
+)
+
+__all__ = [
+    "ask_agent",
+    "get_last_tool_calls",
+    "reset_tool_calls",
+    "AgentResponse",
+    "TOOLS",
+    "_TOOL_MAP",
+    "get_scored_count",
+    "describe_predictions_table",
+    "run_readonly_sql",
+    "get_transaction",
+    "explain_transaction",
+    "get_model_metrics",
+    "get_threshold_info",
+    "get_drift_status",
+    "get_cost_summary",
+    "get_paysim_stats",
+    "get_latest_upload_summary",
+    "SYSTEM_PROMPT",
+    "DB_PATH",
+    "PRED_TABLE",
+]

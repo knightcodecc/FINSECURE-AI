@@ -1,0 +1,224 @@
+{
+  "project": "FinSecure AI v2",
+  "evaluation_timestamp": "2026-10-22",
+  "dataset_split": {
+    "test_split_steps": "541-629",
+    "test_size": 35954,
+    "fraud_count": 622,
+    "non_fraud_count": 35332,
+    "test_fraud_rate": 0.0173,
+    "full_paysim_fraud_rate": 0.0013
+  },
+  "features": {
+    "total_features": 33,
+    "raw_numeric": 5,
+    "one_hot_type": 5,
+    "engineered_tabular": 13,
+    "graph": 10,
+    "feature_names": [
+      "amount",
+      "oldbalanceOrg",
+      "newbalanceOrig",
+      "oldbalanceDest",
+      "newbalanceDest",
+      "orig_in_degree",
+      "orig_out_degree",
+      "orig_pagerank",
+      "orig_component_size",
+      "orig_fraud_exposure",
+      "dest_in_degree",
+      "dest_out_degree",
+      "dest_pagerank",
+      "dest_component_size",
+      "dest_fraud_exposure",
+      "type_CASH_IN",
+      "type_CASH_OUT",
+      "type_DEBIT",
+      "type_PAYMENT",
+      "type_TRANSFER",
+      "errorBalanceOrig",
+      "errorBalanceDest",
+      "log_amount",
+      "account_drained",
+      "dest_balance_zero",
+      "orig_balance_zero",
+      "amount_to_oldbalanceOrg_ratio",
+      "amount_to_oldbalanceDest_ratio",
+      "hour_of_day",
+      "high_risk_hour",
+      "day_of_week",
+      "net_change_orig",
+      "net_change_dest"
+    ]
+  },
+  "threshold_info": {
+    "live_operational_threshold": 0.04836115275201769,
+    "threshold_strategy": "Cost-Optimal (Minimizing Financial Exposure = Missed Fraud Amount + Analyst Review Cost)",
+    "model_metadata_cost_optimal": 0.04836115275201769,
+    "model_metadata_f2_optimal": 0.40941409395973155,
+    "predictor_hardcoded_fallback": 0.017033,
+    "notes": "predictor.py successfully loads 0.048361 from model_metadata.joblib at server startup."
+  },
+  "holdout_metrics_at_live_threshold": {
+    "threshold": 0.0484,
+    "precision": 0.7269,
+    "recall": 0.9759,
+    "f1": 0.8332,
+    "f2": 0.9133,
+    "pr_auc": 0.9576,
+    "roc_auc": 0.9876,
+    "confusion_matrix": {
+      "tp": 607,
+      "fp": 228,
+      "fn": 15,
+      "tn": 35104
+    }
+  },
+  "threshold_sweep": [
+    {
+      "threshold": 0.05,
+      "precision": 0.7322,
+      "recall": 0.9759,
+      "f1": 0.8367,
+      "f2": 0.915,
+      "tp": 607,
+      "fp": 222,
+      "fn": 15,
+      "tn": 35110
+    },
+    {
+      "threshold": 0.0484,
+      "precision": 0.7269,
+      "recall": 0.9759,
+      "f1": 0.8332,
+      "f2": 0.9133,
+      "tp": 607,
+      "fp": 228,
+      "fn": 15,
+      "tn": 35104
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.8797,
+      "recall": 0.9759,
+      "f1": 0.9253,
+      "f2": 0.955,
+      "tp": 607,
+      "fp": 83,
+      "fn": 15,
+      "tn": 35249
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.9583,
+      "recall": 0.9614,
+      "f1": 0.9599,
+      "f2": 0.9608,
+      "tp": 598,
+      "fp": 26,
+      "fn": 24,
+      "tn": 35306
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.9679,
+      "recall": 0.9212,
+      "f1": 0.944,
+      "f2": 0.9302,
+      "tp": 573,
+      "fp": 19,
+      "fn": 49,
+      "tn": 35313
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.9699,
+      "recall": 0.8794,
+      "f1": 0.9224,
+      "f2": 0.8961,
+      "tp": 547,
+      "fp": 17,
+      "fn": 75,
+      "tn": 35315
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.9692,
+      "recall": 0.8087,
+      "f1": 0.8817,
+      "f2": 0.8364,
+      "tp": 503,
+      "fp": 16,
+      "fn": 119,
+      "tn": 35316
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.968,
+      "recall": 0.7299,
+      "f1": 0.8323,
+      "f2": 0.7677,
+      "tp": 454,
+      "fp": 15,
+      "fn": 168,
+      "tn": 35317
+    }
+  ],
+  "speed": {
+    "model_only_inference_latency_ms": {
+      "num_runs": 200,
+      "warmup_runs": 20,
+      "avg_ms": 3.21,
+      "p95_ms": 3.85,
+      "median_ms": 3.12,
+      "min_ms": 2.84,
+      "max_ms": 6.94
+    },
+    "end_to_end_api_latency_ms": {
+      "num_runs": 100,
+      "endpoint": "/predict",
+      "protocol": "HTTP/1.1 POST JSON with Bearer JWT",
+      "avg_ms": 58.79,
+      "p95_ms": 67.18,
+      "median_ms": 57.32,
+      "min_ms": 51.24,
+      "max_ms": 84.12
+    }
+  },
+  "test_suite": {
+    "total_collected": 85,
+    "total_passed": 85,
+    "total_failed": 0,
+    "pass_rate_pct": 100.0,
+    "categories": {
+      "unit": 49,
+      "integration": 13,
+      "system": 4,
+      "security": 19
+    }
+  },
+  "slide_table_summary": {
+    "recall_f1_holdout": "97.59% / 83.32%",
+    "avg_response_time_ms": "58.79 ms",
+    "test_cases_passed": "85 / 85",
+    "precision": "72.69%",
+    "recall": "97.59%",
+    "f1": "83.32%",
+    "pr_auc_roc_auc": "0.9576 / 0.9876",
+    "confusion_matrix_tp_fp_fn_tn": "607 / 228 / 15 / 35,104",
+    "avg_inference_time": "3.21 ms"
+  },
+  "slide_wording_comparison": {
+    "old_slide_claim": {
+      "threshold": 0.65,
+      "features_count": 23,
+      "tuning_target": "F1/Recall tuned heuristic"
+    },
+    "v2_actual_implementation": {
+      "threshold": 0.0484,
+      "features_count": 33,
+      "tuning_target": "Cost-optimal financial exposure minimization (Rs 150 review cost + actual fraud amounts)",
+      "difference_justification": "At threshold 0.65, recall drops to 80.87%, missing 119 fraud cases (nearly 20% of all fraud) and causing tens of millions of rupees in unrecovered losses. At 0.0484, recall is 97.59% (only 15 missed frauds), saving Rs 34.96M while maintaining high precision (72.69%). Feature count is 33 (10 graph topology + 13 engineered tabular + 5 raw + 5 one-hot) vs 23 in v1."
+    }
+  }
+}

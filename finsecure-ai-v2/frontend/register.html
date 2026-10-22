@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Analyst — FinSecure AI v2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <div class="logo-icon">FS</div>
+      </div>
+      <h1 style="font-size: 22px; font-weight: 700; color: var(--text-main);">Create Analyst Account</h1>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Join FinSecure AI v2 fraud intelligence team</p>
+    </div>
+
+    <div id="register-alert" class="auth-alert"></div>
+
+    <form id="register-form">
+      <div class="form-group">
+        <label class="form-label" for="reg-fullname">Full Name</label>
+        <input type="text" id="reg-fullname" class="form-input" placeholder="e.g. Sarah Jenkins" required minlength="2">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-email">Work Email</label>
+        <input type="email" id="reg-email" class="form-input" placeholder="s.jenkins@finsecure.ai" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-password">Password (Minimum 8 Characters)</label>
+        <input type="password" id="reg-password" class="form-input" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+      </div>
+
+      <button type="submit" id="btn-register" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 11px;">
+        Register Analyst Account
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 13px; color: var(--text-muted);">
+      Already have an account? <a href="login.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign in here</a>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('finsecure_token')) {
+      window.location.replace('/');
+    }
+
+    const form = document.getElementById('register-form');
+    const alertBox = document.getElementById('register-alert');
+    const btn = document.getElementById('btn-register');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.className = 'auth-alert';
+      alertBox.style.display = 'none';
+
+      const full_name = document.getElementById('reg-fullname').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (!full_name || full_name.length < 2) {
+        showAlert('Please enter your full name.', 'danger');
+        return;
+      }
+
+      if (!email || !email.includes('@')) {
+        showAlert('Please enter a valid email address.', 'danger');
+        return;
+      }
+
+      if (!password || password.length < 8) {
+        showAlert('Password must be at least 8 characters long.', 'danger');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Creating Account...';
+
+      try {
+        const resp = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_name, email, password })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          const errMsg = data.detail || 'Registration failed. Please verify your details.';
+          showAlert(errMsg, 'danger');
+          btn.disabled = false;
+          btn.innerText = 'Register Analyst Account';
+          return;
+        }
+
+        // Save JWT token and redirect to dashboard
+        localStorage.setItem('finsecure_token', data.access_token);
+        localStorage.setItem('finsecure_user', JSON.stringify(data.user));
+
+        showAlert('Account created successfully! Redirecting to dashboard...', 'success');
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 500);
+
+      } catch (err) {
+        showAlert('Network error connecting to API: ' + err.message, 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Register Analyst Account';
+      }
+    });
+
+    function showAlert(msg, type) {
+      alertBox.textContent = msg;
+      alertBox.className = `auth-alert ${type}`;
+      alertBox.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

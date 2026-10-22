@@ -1,0 +1,33 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.7, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Pratham Bhat\Downloads\finsecure-ai-v2-scaffold\finsecure-ai-v2
+plugins: anyio-4.14.1, timeout-2.4.0
+collected 30 items
+
+tests\test_cost_sensitive_eval.py ......                                 [ 20%]
+tests\test_drift_monitor.py ....                                         [ 33%]
+tests\test_feature_engineering.py .                                      [ 36%]
+tests\test_graph_features.py ......                                      [ 56%]
+tests\test_real_data_compatibility.py .                                  [ 60%]
+tests\test_serving.py ..........                                         [ 93%]
+tests\test_xai.py ..                                                     [100%]
+
+============================== warnings summary ===============================
+..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:47
+  C:\Users\Pratham Bhat\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:47: PendingDeprecationWarning: The set_bad function will be deprecated in a future version. Use cmap.with_extremes(bad=...) or Colormap(bad=...) instead.
+    red_blue.set_bad(gray_rgb.tolist(), 1.0)
+
+..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:48
+  C:\Users\Pratham Bhat\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:48: PendingDeprecationWarning: The set_over function will be deprecated in a future version. Use cmap.with_extremes(over=...) or Colormap(over=...) instead.
+    red_blue.set_over(gray_rgb.tolist(), 1.0)
+
+..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:49
+  C:\Users\Pratham Bhat\AppData\Local\Programs\Python\Python311\Lib\site-packages\shap\plots\colors\_colors.py:49: PendingDeprecationWarning: The set_under function will be deprecated in a future version. Use cmap.with_extremes(under=...) or Colormap(under=...) instead.
+    red_blue.set_under(gray_rgb.tolist(), 1.0)  # "under" is incorrectly used instead of "bad" in the scatter plot
+
+tests/test_serving.py::test_get_metrics_cost_endpoint
+  C:\Users\Pratham Bhat\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 30 passed, 4 warnings in 23.46s =======================

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — FinSecure AI v2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <div class="logo-icon">FS</div>
+      </div>
+      <h1 style="font-size: 22px; font-weight: 700; color: var(--text-main);">FinSecure AI v2</h1>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Sign in to access your fraud analyst dashboard</p>
+    </div>
+
+    <div id="login-alert" class="auth-alert"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email Address</label>
+        <input type="email" id="login-email" class="form-input" placeholder="analyst@finsecure.ai" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input type="password" id="login-password" class="form-input" placeholder="••••••••" required minlength="8" autocomplete="current-password">
+      </div>
+
+      <button type="submit" id="btn-login" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 11px;">
+        Sign In
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 13px; color: var(--text-muted);">
+      Don't have an analyst account? <a href="register.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">Register here</a>
+    </div>
+
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-light); text-align: center;">
+      Default Admin: <code>admin@finsecure.ai</code> | <code>AdminSecure2026!</code>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already authenticated
+    if (localStorage.getItem('finsecure_token')) {
+      window.location.replace('/');
+    }
+
+    const form = document.getElementById('login-form');
+    const alertBox = document.getElementById('login-alert');
+    const btn = document.getElementById('btn-login');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.className = 'auth-alert';
+      alertBox.style.display = 'none';
+
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !email.includes('@')) {
+        showAlert('Please enter a valid email address.', 'danger');
+        return;
+      }
+
+      if (!password || password.length < 8) {
+        showAlert('Password must be at least 8 characters long.', 'danger');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Authenticating...';
+
+      try {
+        const resp = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          const errMsg = data.detail || 'Authentication failed. Please check your credentials.';
+          showAlert(errMsg, 'danger');
+          btn.disabled = false;
+          btn.innerText = 'Sign In';
+          return;
+        }
+
+        // Store JWT token and user info
+        localStorage.setItem('finsecure_token', data.access_token);
+        localStorage.setItem('finsecure_user', JSON.stringify(data.user));
+
+        showAlert('Sign in successful. Redirecting to dashboard...', 'success');
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 500);
+
+      } catch (err) {
+        showAlert('Network error connecting to API server: ' + err.message, 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Sign In';
+      }
+    });
+
+    function showAlert(msg, type) {
+      alertBox.textContent = msg;
+      alertBox.className = `auth-alert ${type}`;
+      alertBox.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

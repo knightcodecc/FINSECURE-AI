@@ -1,0 +1,89 @@
+﻿Loading raw transaction data from data\paysim_synth.csv...
+Loaded 300,000 raw transactions.
+Merging graph features from data\transactions_with_graph_features.parquet...
+--- DIAGNOSTIC: MERGE KEY DTYPES ---
+Key 'step': raw df dtype = int64, graph df dtype = int64
+Key 'nameOrig': raw df dtype = str, graph df dtype = str
+Key 'nameDest': raw df dtype = str, graph df dtype = str
+
+--- DIAGNOSTIC: MERGE INDICATOR VALUE COUNTS ---
+_merge
+both          300000
+left_only          0
+right_only         0
+Name: count, dtype: int64
+
+--- DIAGNOSTIC: NULL COUNTS PER GRAPH FEATURE (BEFORE FILLNA) ---
+orig_in_degree         0
+orig_out_degree        0
+orig_pagerank          0
+orig_component_size    0
+orig_fraud_exposure    0
+dest_in_degree         0
+dest_out_degree        0
+dest_pagerank          0
+dest_component_size    0
+dest_fraud_exposure    0
+dtype: int64
+
+--- DIAGNOSTIC: COLD-START ROW ANALYSIS ---
+Overall Cold-Start Rows: 40674/300000 (13.56%)
+
+Cold-Start Rate Breakdown by Step Batch (step // 24):
+      total_rows  cold_start_count cold_start_rate
+step                                              
+0           9277              9277         100.00%
+1           9628              9628         100.00%
+2           9624              9624         100.00%
+3           9694              2659          27.43%
+4           9903              2764          27.91%
+5           9717              2732          28.12%
+6           9740               864           8.87%
+7           9832               973           9.90%
+8           9531               866           9.09%
+9           9976               293           2.94%
+10          9587               285           2.97%
+11          9704               276           2.84%
+12          9575               109           1.14%
+13          9588               101           1.05%
+14          9743                87           0.89%
+15          9844                34           0.35%
+16          9583                36           0.38%
+17          9653                33           0.34%
+18          9497                 6           0.06%
+19          9625                 7           0.07%
+20          9752                 9           0.09%
+21          9706                 3           0.03%
+22          9688                 2           0.02%
+23          9719                 1           0.01%
+24          9755                 0           0.00%
+25          9720                 1           0.01%
+26          9501                 2           0.02%
+27          9665                 1           0.01%
+28          9598                 0           0.00%
+29          9724                 1           0.01%
+30          9851                 0           0.00%
+---------------------------------------------------
+
+Graph features merged. Total columns: 22
+Dropping leakage columns (nameOrig, nameDest, isFlaggedFraud) and encoding categories...
+Preprocessing complete. Clean shape: (300000, 24)
+Saved cleaned dataset to data\cleaned_transactions.parquet
+Loading cleaned dataset from data\cleaned_transactions.parquet...
+Engineering 15 tabular features...
+Performing 4-window split and fitting StandardScaler on TRAIN split only...
+==========================================================================
+      FOUR-WINDOW CHRONOLOGICAL SPLIT SUMMARY & MECHANISM BREAKDOWN      
+==========================================================================
+Train        | Steps:   1..420 | Rows: 169,746 | Fraud: 2,999 ( 1.77%) | Mechs: A=1,560, B=1,409, C=0
+Val          | Steps: 421..540 | Rows:  48,316 | Fraud:   910 ( 1.88%) | Mechs: A=487, B=428, C=0
+Clean Test   | Steps: 541..629 | Rows:  35,954 | Fraud:   622 ( 1.73%) | Mechs: A=353, B=263, C=0
+Shift Window | Steps: 630..743 | Rows:  45,984 | Fraud:   905 ( 1.97%) | Mechs: A=0, B=0, C=900
+==========================================================================
+
+Fitted scaler saved to models\scaler.joblib
+Saved feature splits to:
+  - data\features_train.parquet
+  - data\features_val.parquet
+  - data\features_test.parquet
+  - data\features_shift.parquet

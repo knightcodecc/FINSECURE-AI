@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+data/*.csv
+data/*.parquet
+*.db
+data/uploads/
+data/analyses/
+models/*
+users_export.xlsx
+.venv/
+*.egg-info/
+reports/logs/run*_report.log

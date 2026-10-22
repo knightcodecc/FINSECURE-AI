@@ -1,0 +1,574 @@
+{
+  "metadata": {
+    "source_file": "paysim.csv",
+    "dataset_name": "paysim",
+    "row_count": 6362620,
+    "fraud_count": 8213,
+    "build_time_utc": "2026-10-21T08:06:26.962002+00:00",
+    "runtime_seconds": 9.73,
+    "peak_ram_mb": 141.55
+  },
+  "summary": {
+    "total_transactions": 6362620,
+    "total_fraud": 8213,
+    "total_legitimate": 6354407,
+    "overall_fraud_rate": 0.001290820448180152,
+    "total_volume_rs": 1144392944759.7698,
+    "total_fraud_volume_rs": 12056415427.84,
+    "mean_amount_legit": 178197.04172740743,
+    "mean_amount_fraud": 1467967.2991403872,
+    "max_amount_legit": 92445516.64,
+    "max_amount_fraud": 10000000.0
+  },
+  "by_type": {
+    "CASH_IN": {
+      "count": 1399284,
+      "fraud_count": 0,
+      "amount": 236367391912.46,
+      "fraud_amount": 0.0,
+      "fraud_rate": 0.0
+    },
+    "CASH_OUT": {
+      "count": 2237500,
+      "fraud_count": 4116,
+      "amount": 394412995224.49005,
+      "fraud_amount": 5989202243.83,
+      "fraud_rate": 0.0018395530726256983
+    },
+    "DEBIT": {
+      "count": 41432,
+      "fraud_count": 0,
+      "amount": 227199221.28,
+      "fraud_amount": 0.0,
+      "fraud_rate": 0.0
+    },
+    "PAYMENT": {
+      "count": 2151495,
+      "fraud_count": 0,
+      "amount": 28093371138.369995,
+      "fraud_amount": 0.0,
+      "fraud_rate": 0.0
+    },
+    "TRANSFER": {
+      "count": 532909,
+      "fraud_count": 4097,
+      "amount": 485291987263.17,
+      "fraud_amount": 6067213184.01,
+      "fraud_rate": 0.007687991758442811
+    }
+  },
+  "timeseries": {
+    "hour": [
+      {
+        "hour": 0,
+        "count": 71587,
+        "fraud_count": 300
+      },
+      {
+        "hour": 1,
+        "count": 27111,
+        "fraud_count": 358
+      },
+      {
+        "hour": 2,
+        "count": 9018,
+        "fraud_count": 372
+      },
+      {
+        "hour": 3,
+        "count": 2007,
+        "fraud_count": 326
+      },
+      {
+        "hour": 4,
+        "count": 1241,
+        "fraud_count": 274
+      },
+      {
+        "hour": 5,
+        "count": 1641,
+        "fraud_count": 366
+      },
+      {
+        "hour": 6,
+        "count": 3420,
+        "fraud_count": 358
+      },
+      {
+        "hour": 7,
+        "count": 8988,
+        "fraud_count": 328
+      },
+      {
+        "hour": 8,
+        "count": 26915,
+        "fraud_count": 368
+      },
+      {
+        "hour": 9,
+        "count": 283518,
+        "fraud_count": 341
+      },
+      {
+        "hour": 10,
+        "count": 425729,
+        "fraud_count": 375
+      },
+      {
+        "hour": 11,
+        "count": 445992,
+        "fraud_count": 324
+      },
+      {
+        "hour": 12,
+        "count": 483418,
+        "fraud_count": 339
+      },
+      {
+        "hour": 13,
+        "count": 468474,
+        "fraud_count": 346
+      },
+      {
+        "hour": 14,
+        "count": 439653,
+        "fraud_count": 353
+      },
+      {
+        "hour": 15,
+        "count": 416686,
+        "fraud_count": 341
+      },
+      {
+        "hour": 16,
+        "count": 441612,
+        "fraud_count": 345
+      },
+      {
+        "hour": 17,
+        "count": 439941,
+        "fraud_count": 353
+      },
+      {
+        "hour": 18,
+        "count": 580509,
+        "fraud_count": 343
+      },
+      {
+        "hour": 19,
+        "count": 647814,
+        "fraud_count": 342
+      },
+      {
+        "hour": 20,
+        "count": 553728,
+        "fraud_count": 340
+      },
+      {
+        "hour": 21,
+        "count": 247806,
+        "fraud_count": 347
+      },
+      {
+        "hour": 22,
+        "count": 194555,
+        "fraud_count": 351
+      },
+      {
+        "hour": 23,
+        "count": 141257,
+        "fraud_count": 323
+      }
+    ],
+    "day": [
+      {
+        "day": 1,
+        "count": 574255,
+        "fraud_count": 271
+      },
+      {
+        "day": 2,
+        "count": 455238,
+        "fraud_count": 309
+      },
+      {
+        "day": 3,
+        "count": 1070,
+        "fraud_count": 310
+      },
+      {
+        "day": 4,
+        "count": 28240,
+        "fraud_count": 262
+      },
+      {
+        "day": 5,
+        "count": 9789,
+        "fraud_count": 252
+      },
+      {
+        "day": 6,
+        "count": 441005,
+        "fraud_count": 228
+      },
+      {
+        "day": 7,
+        "count": 420583,
+        "fraud_count": 272
+      },
+      {
+        "day": 8,
+        "count": 449637,
+        "fraud_count": 278
+      },
+      {
+        "day": 9,
+        "count": 417919,
+        "fraud_count": 255
+      },
+      {
+        "day": 10,
+        "count": 392945,
+        "fraud_count": 282
+      },
+      {
+        "day": 11,
+        "count": 417859,
+        "fraud_count": 262
+      },
+      {
+        "day": 12,
+        "count": 349776,
+        "fraud_count": 298
+      },
+      {
+        "day": 13,
+        "count": 428583,
+        "fraud_count": 242
+      },
+      {
+        "day": 14,
+        "count": 397876,
+        "fraud_count": 246
+      },
+      {
+        "day": 15,
+        "count": 401282,
+        "fraud_count": 250
+      },
+      {
+        "day": 16,
+        "count": 375594,
+        "fraud_count": 252
+      },
+      {
+        "day": 17,
+        "count": 425766,
+        "fraud_count": 320
+      },
+      {
+        "day": 18,
+        "count": 20999,
+        "fraud_count": 268
+      },
+      {
+        "day": 19,
+        "count": 11300,
+        "fraud_count": 256
+      },
+      {
+        "day": 20,
+        "count": 19727,
+        "fraud_count": 236
+      },
+      {
+        "day": 21,
+        "count": 24593,
+        "fraud_count": 272
+      },
+      {
+        "day": 22,
+        "count": 53437,
+        "fraud_count": 256
+      },
+      {
+        "day": 23,
+        "count": 51012,
+        "fraud_count": 216
+      },
+      {
+        "day": 24,
+        "count": 32709,
+        "fraud_count": 280
+      },
+      {
+        "day": 25,
+        "count": 57853,
+        "fraud_count": 240
+      },
+      {
+        "day": 26,
+        "count": 13885,
+        "fraud_count": 272
+      },
+      {
+        "day": 27,
+        "count": 8578,
+        "fraud_count": 280
+      },
+      {
+        "day": 28,
+        "count": 14661,
+        "fraud_count": 248
+      },
+      {
+        "day": 29,
+        "count": 54890,
+        "fraud_count": 260
+      },
+      {
+        "day": 30,
+        "count": 11287,
+        "fraud_count": 268
+      },
+      {
+        "day": 31,
+        "count": 272,
+        "fraud_count": 272
+      }
+    ],
+    "step24": [
+      {
+        "window": 0,
+        "count": 574255,
+        "fraud_count": 271
+      },
+      {
+        "window": 1,
+        "count": 455238,
+        "fraud_count": 309
+      },
+      {
+        "window": 2,
+        "count": 1070,
+        "fraud_count": 310
+      },
+      {
+        "window": 3,
+        "count": 28240,
+        "fraud_count": 262
+      },
+      {
+        "window": 4,
+        "count": 9789,
+        "fraud_count": 252
+      },
+      {
+        "window": 5,
+        "count": 441005,
+        "fraud_count": 228
+      },
+      {
+        "window": 6,
+        "count": 420583,
+        "fraud_count": 272
+      },
+      {
+        "window": 7,
+        "count": 449637,
+        "fraud_count": 278
+      },
+      {
+        "window": 8,
+        "count": 417919,
+        "fraud_count": 255
+      },
+      {
+        "window": 9,
+        "count": 392945,
+        "fraud_count": 282
+      },
+      {
+        "window": 10,
+        "count": 417859,
+        "fraud_count": 262
+      },
+      {
+        "window": 11,
+        "count": 349776,
+        "fraud_count": 298
+      },
+      {
+        "window": 12,
+        "count": 428583,
+        "fraud_count": 242
+      },
+      {
+        "window": 13,
+        "count": 397876,
+        "fraud_count": 246
+      },
+      {
+        "window": 14,
+        "count": 401282,
+        "fraud_count": 250
+      },
+      {
+        "window": 15,
+        "count": 375594,
+        "fraud_count": 252
+      },
+      {
+        "window": 16,
+        "count": 425766,
+        "fraud_count": 320
+      },
+      {
+        "window": 17,
+        "count": 20999,
+        "fraud_count": 268
+      },
+      {
+        "window": 18,
+        "count": 11300,
+        "fraud_count": 256
+      },
+      {
+        "window": 19,
+        "count": 19727,
+        "fraud_count": 236
+      },
+      {
+        "window": 20,
+        "count": 24593,
+        "fraud_count": 272
+      },
+      {
+        "window": 21,
+        "count": 53437,
+        "fraud_count": 256
+      },
+      {
+        "window": 22,
+        "count": 51012,
+        "fraud_count": 216
+      },
+      {
+        "window": 23,
+        "count": 32709,
+        "fraud_count": 280
+      },
+      {
+        "window": 24,
+        "count": 57853,
+        "fraud_count": 240
+      },
+      {
+        "window": 25,
+        "count": 13885,
+        "fraud_count": 272
+      },
+      {
+        "window": 26,
+        "count": 8578,
+        "fraud_count": 280
+      },
+      {
+        "window": 27,
+        "count": 14661,
+        "fraud_count": 248
+      },
+      {
+        "window": 28,
+        "count": 54890,
+        "fraud_count": 260
+      },
+      {
+        "window": 29,
+        "count": 11287,
+        "fraud_count": 268
+      },
+      {
+        "window": 30,
+        "count": 272,
+        "fraud_count": 272
+      }
+    ]
+  },
+  "amount_distribution": {
+    "bin_labels": [
+      "< Rs. 1",
+      "Rs. 1 - 3",
+      "Rs. 3 - 10",
+      "Rs. 10 - 31",
+      "Rs. 31 - 100",
+      "Rs. 100 - 316",
+      "Rs. 316 - 1,000",
+      "Rs. 1,000 - 3,162",
+      "Rs. 3,162 - 10,000",
+      "Rs. 10,000 - 31,622",
+      "Rs. 31,622 - 100,000",
+      "Rs. 100,000 - 316,227",
+      "Rs. 316,227 - 1,000,000",
+      "Rs. 1,000,000 - 3,162,277",
+      "Rs. 3,162,277 - 10,000,000",
+      "Rs. 10,000,000 - 31,622,776",
+      "Rs. 31,622,776 - 100,000,000",
+      ">= Rs. 100,000,000"
+    ],
+    "hist_legit": [
+      116,
+      298,
+      908,
+      3165,
+      9598,
+      30590,
+      97909,
+      308714,
+      834427,
+      1141809,
+      1096015,
+      1993967,
+      708971,
+      108135,
+      14422,
+      5066,
+      297,
+      0
+    ],
+    "hist_fraud": [
+      16,
+      0,
+      0,
+      0,
+      2,
+      20,
+      20,
+      62,
+      158,
+      437,
+      992,
+      1798,
+      2002,
+      1585,
+      834,
+      287,
+      0,
+      0
+    ]
+  },
+  "fraud_patterns": {
+    "drained_origin": {
+      "fraud_count": 8012,
+      "fraud_pct": 0.9755266041641301,
+      "legit_count": 1512569,
+      "legit_pct": 0.23803464272905403
+    },
+    "dest_unchanged": {
+      "fraud_count": 4086,
+      "fraud_pct": 0.4975039571411177,
+      "legit_count": 2313206,
+      "legit_pct": 0.36403176567065976
+    }
+  }
+}
